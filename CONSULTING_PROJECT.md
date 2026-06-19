@@ -171,9 +171,9 @@ B2B SaaS company with an 8-person support team handling ~300 tickets/month.
 
 ## Contact
 
-- **Email:** leopoldo.lara@example.com
+- **Email:** laral5173@gmail.com
 - **GitHub:** [github.com/laral5173](https://github.com/laral5173)
-- **LinkedIn:** [linkedin.com/in/leopoldo-lara](https://linkedin.com/in/leopoldo-lara)
+- **LinkedIn:** [linkedin.com/in/leopoldo-l-a0929aba](https://www.linkedin.com/in/leopoldo-l-a0929aba)
 
 ---
 
