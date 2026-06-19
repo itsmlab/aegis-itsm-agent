@@ -38,30 +38,52 @@ import io
 _old_stdout = sys.stdout
 sys.stdout = io.StringIO()
 
-from classifier import (
-    load_dataset_from_csv, create_collection, load_tickets_to_db,
-    classify_ticket, get_statistics, DATASET_PATH, SAMPLE_TICKETS
-)
-from orchestrator import diagnose, load_patterns_kb, count_patterns
+# Try to use the new SaaS services (app/services/) first.
+# Falls back to direct imports from classifier.py / orchestrator.py
+# for backward compatibility with standalone CLI mode.
+_use_saas_services = False
+try:
+    from app.services.classifier_service import classifier_service
+    from app.services.orchestrator_service import orchestrator_service
+    _use_saas_services = True
+except (ImportError, Exception):
+    pass
+
+if not _use_saas_services:
+    from classifier import (
+        load_dataset_from_csv, create_collection, load_tickets_to_db,
+        classify_ticket, get_statistics, DATASET_PATH, SAMPLE_TICKETS
+    )
+    from orchestrator import diagnose, load_patterns_kb, count_patterns
 
 sys.stdout = _old_stdout
 
 # ── Initialize ChromaDB ────────────────────────────────────────
 print("🤖 AEGIS Slack Bot - Initializing...")
-dataset = load_dataset_from_csv(DATASET_PATH)
-if not dataset:
-    dataset = SAMPLE_TICKETS
 
-collection = create_collection()
-load_tickets_to_db(dataset, collection)
-stats = get_statistics(collection)
+if _use_saas_services:
+    # Use the new SaaS services
+    stats = classifier_service.get_global_stats()
+    pattern_count = orchestrator_service.get_pattern_count()
+    print(f"📊 Classifier: {stats['total_tickets']} tickets, {len(stats['categories'])} categories")
+    print(f"📚 Patterns: {pattern_count} L3/L4 patterns")
+    print(f"🤖 LLM Provider: {orchestrator_service.get_provider_name()}")
+else:
+    # Legacy initialization (standalone CLI mode)
+    dataset = load_dataset_from_csv(DATASET_PATH)
+    if not dataset:
+        dataset = SAMPLE_TICKETS
 
-# Load L3/L4 knowledge base
-patterns_kb = load_patterns_kb()
-pattern_count = count_patterns(patterns_kb)
+    collection = create_collection()
+    load_tickets_to_db(dataset, collection)
+    stats = get_statistics(collection)
 
-print(f"📊 Classifier: {stats['total']} tickets, {len(stats['categories'])} categories")
-print(f"📚 Patterns: {pattern_count} L3/L4 patterns")
+    # Load L3/L4 knowledge base
+    patterns_kb = load_patterns_kb()
+    pattern_count = count_patterns(patterns_kb)
+
+    print(f"📊 Classifier: {stats['total']} tickets, {len(stats['categories'])} categories")
+    print(f"📚 Patterns: {pattern_count} L3/L4 patterns")
 
 # ── Category mapping (same as integration_module) ──────────────
 CATEGORY_MAP = {
@@ -124,11 +146,21 @@ def diagnose_alert(alert_text: str) -> str:
     level = route_severity(alert_text)
 
     if level == "L1/L2":
-        result = classify_ticket(alert_text, collection)
-        category = result["category"]
-        confidence = result["confidence"]
-        method = result.get("method", "unknown")
-        suggested = result.get("suggested_resolution", "")
+        if _use_saas_services:
+            # Use the new SaaS classifier service
+            result = classifier_service.classify("default", alert_text)
+            category = result["category"]
+            confidence = result["confidence"]
+            method = result.get("method", "unknown")
+            suggested = result.get("suggested_resolution", "")
+        else:
+            # Legacy classifier
+            result = classify_ticket(alert_text, collection)
+            category = result["category"]
+            confidence = result["confidence"]
+            method = result.get("method", "unknown")
+            suggested = result.get("suggested_resolution", "")
+
         pattern = CATEGORY_MAP.get(category, CATEGORY_MAP["UNKNOWN"])
 
         lines = [
@@ -142,7 +174,13 @@ def diagnose_alert(alert_text: str) -> str:
         lines.append(f"\n📋 *Procedure:*\n```\n{pattern['script']}\n```")
         return "\n".join(lines)
     else:
-        result = diagnose(alert_text, patterns_kb)
+        if _use_saas_services:
+            # Use the new SaaS orchestrator service
+            result = orchestrator_service.diagnose(alert_text)
+        else:
+            # Legacy orchestrator
+            result = diagnose(alert_text, patterns_kb)
+
         lines = [
             f"🔴 *Level:* L3/L4",
             f"🔴 *Pattern:* {result['name']} ({result['id']})",
@@ -212,7 +250,10 @@ def handle_slash_command(ack, respond, command):
 if __name__ == "__main__":
     print("🤖 AEGIS Slack Bot")
     print("=" * 50)
-    print(f"ChromaDB classifier: {stats['total']} tickets in {len(stats['categories'])} categories")
+    if _use_saas_services:
+        print(f"ChromaDB classifier: {stats['total_tickets']} tickets in {len(stats['categories'])} categories")
+    else:
+        print(f"ChromaDB classifier: {stats['total']} tickets in {len(stats['categories'])} categories")
     print(f"L3/L4 patterns: {pattern_count} patterns")
     print("Starting Socket Mode handler...")
     print("=" * 50)

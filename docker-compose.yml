@@ -1,0 +1,61 @@
+# ── AEGIS SaaS — Docker Compose ──────────────────────────────
+# Spins up: app, PostgreSQL, ChromaDB server
+# Usage: docker-compose up --build
+
+version: "3.9"
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: aegis
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── ChromaDB Server ─────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+
+  # ── AEGIS App ───────────────────────────────────────────────
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://postgres:postgres@postgres:5432/aegis"
+      CHROMA_HOST: "chromadb"
+      CHROMA_PORT: 8000
+      CHROMA_USE_SERVER: "true"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-deepseek}"
+      AUTH_REQUIRED: "${AUTH_REQUIRED:-false}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    volumes:
+      - tickets_db_data:/app/tickets_db
+
+volumes:
+  postgres_data:
+  chromadb_data:
+  tickets_db_data:

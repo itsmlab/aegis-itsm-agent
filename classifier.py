@@ -21,10 +21,19 @@ print("=" * 50)
 # Configuration
 # ============================================
 
-CLASSIFIER_DB_PATH = "./tickets_db"
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-DATASET_PATH = "tickets_dataset.csv"
-CONFIDENCE_THRESHOLD = 0.45
+# Try to use centralized settings from app.config (SaaS mode).
+# Falls back to hardcoded defaults when running standalone (CLI mode).
+try:
+    from app.config import settings as _app_settings
+    CLASSIFIER_DB_PATH = _app_settings.CLASSIFIER_DB_PATH
+    EMBEDDING_MODEL = _app_settings.EMBEDDING_MODEL
+    DATASET_PATH = _app_settings.DATASET_PATH
+    CONFIDENCE_THRESHOLD = _app_settings.CLASSIFIER_CONFIDENCE_THRESHOLD
+except (ImportError, Exception):
+    CLASSIFIER_DB_PATH = "./tickets_db"
+    EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+    DATASET_PATH = "tickets_dataset.csv"
+    CONFIDENCE_THRESHOLD = 0.45
 
 # ============================================
 # Keyword patterns for fallback classification

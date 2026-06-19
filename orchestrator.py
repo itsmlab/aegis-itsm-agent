@@ -15,11 +15,18 @@ from openai import OpenAI
 
 # Load API key from .env file
 load_dotenv()
-api_key = os.getenv("DEEPSEEK_API_KEY")
 
-PATTERNS_FILE = Path(__file__).parent / "AEGIS_PATTERNS.md"
-DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEEPSEEK_MODEL = "deepseek-chat"
+# Try to use centralized settings from app.config (SaaS mode).
+# Falls back to hardcoded defaults when running standalone (CLI mode).
+try:
+    from app.config import settings as _app_settings
+    PATTERNS_FILE = Path(_app_settings.PATTERNS_FILE)
+    DEEPSEEK_BASE_URL = _app_settings.DEEPSEEK_BASE_URL
+    DEEPSEEK_MODEL = _app_settings.DEEPSEEK_MODEL
+except (ImportError, Exception):
+    PATTERNS_FILE = Path(__file__).parent / "AEGIS_PATTERNS.md"
+    DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+    DEEPSEEK_MODEL = "deepseek-chat"
 
 UNKNOWN_RESULT = {
     "id": "UNKNOWN",

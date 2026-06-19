@@ -7,7 +7,8 @@
 ![LangChain](https://img.shields.io/badge/LangChain-RAG-green?logo=chainlink&logoColor=white)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorDB-orange)
 ![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-purple)
-![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-brightgreen)
+![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
 
@@ -69,6 +70,79 @@ Slack / PagerDuty / Jira / ServiceNow
 | t = 5s | RAG engine searches pattern knowledge base |
 | t = 10s | LLM generates tailored diagnosis |
 | t = 15s | Remediation script ready for approval or auto-execution |
+
+---
+
+## Quick Start
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/laral5173/aegis-itsm-agent.git
+cd aegis-itsm-agent
+
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS/Linux
+
+pip install -r requirements.txt
+```
+
+### 2. Configure API key
+
+Create a `.env` file in the root:
+
+```
+DEEPSEEK_API_KEY=your-deepseek-api-key-here
+```
+
+Get your API key at [platform.deepseek.com](https://platform.deepseek.com)
+
+### 3. Run the server
+
+```bash
+python app/main.py
+```
+
+Or with uvicorn directly:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Open **http://localhost:8000/docs** for the interactive API documentation.
+
+### 4. Send an alert
+
+```bash
+curl -X POST http://localhost:8000/v1/alert \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": "manual",
+    "severity": "low",
+    "title": "User cannot log in",
+    "description": "User gets 403 error when accessing the application"
+  }'
+```
+
+### 5. Run individual components (CLI mode)
+
+```bash
+# L3/L4 incident diagnostician
+python orchestrator.py
+
+# L1/L2 ticket classifier
+python classifier.py
+
+# Slack bot (Socket Mode)
+python slack_bot.py
+
+# Run accuracy tests
+python test_classifier.py
+
+# Run cross-validation
+python cross_validation.py
+```
 
 ---
 
@@ -152,74 +226,9 @@ Each pattern includes: symptoms, root cause diagnosis, and a production-ready re
 
 ---
 
-## Quick Start
-
-### 1. Clone and install
-
-```bash
-git clone https://github.com/laral5173/aegis-itsm-agent.git
-cd aegis-itsm-agent
-
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS/Linux
-
-pip install -r requirements.txt
-pip install fastapi uvicorn python-dotenv openai
-```
-
-### 2. Configure API key
-
-Create a `.env` file in the root:
-
-```
-DEEPSEEK_API_KEY=your-deepseek-api-key-here
-```
-
-Get your API key at [platform.deepseek.com](https://platform.deepseek.com)
-
-### 3. Run the Integration Module (recommended)
-
-```bash
-python integration_module.py
-```
-
-Open **http://localhost:8000/docs** for the interactive API.
-
-Send an alert via POST /alert:
-
-```bash
-curl -X POST http://localhost:8000/alert \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source": "manual",
-    "severity": "low",
-    "title": "User cannot log in",
-    "description": "User gets 403 error when accessing the application"
-  }'
-```
-
-### 4. Run individual components
-
-```bash
-# L3/L4 incident diagnostician (CLI mode)
-python orchestrator.py
-
-# L1/L2 ticket classifier (CLI mode)
-python classifier.py
-
-# Run accuracy tests
-python test_classifier.py
-
-# Run cross-validation
-python cross_validation.py
-```
-
----
-
 ## API Reference
 
-### POST /alert
+### POST /v1/alert
 
 Receives any alert or ticket and returns diagnosis + remediation script.
 
@@ -263,27 +272,13 @@ Receives any alert or ticket and returns diagnosis + remediation script.
 }
 ```
 
-### GET /health
+### GET /v1/health
 
-Returns system status — patterns file, API key, classifier state, timestamp.
+Returns system status — patterns file, classifier state, LLM provider, timestamp.
 
-### GET /stats
+### GET /v1/stats
 
-Returns classifier statistics — total tickets, categories, model info.
-
----
-
-## Pricing
-
-| | AEGIS Shield | AEGIS Guard | AEGIS Fortress |
-|-|-------------|-------------|----------------|
-| **Price** | $499/month | $1,499/month | Custom |
-| **Incidents** | Up to 50/month | Unlimited | Unlimited |
-| **L1/L2 classification** | ✅ | ✅ | ✅ |
-| **L3/L4 diagnosis** | ✅ | ✅ | ✅ |
-| **Integration** | Webhook + Slack | + PagerDuty + Datadog | + ServiceNow + Jira |
-| **Script execution** | Manual | Sandbox auto-exec | Full autonomous |
-| **Support** | Email | Priority | Dedicated + SLA |
+Returns classifier and usage statistics.
 
 ---
 
@@ -303,28 +298,50 @@ Returns classifier statistics — total tickets, categories, model info.
 ## Repository Structure
 
 ```
-aegis-itsm-agent-dev/
+aegis-itsm-agent/
+│
+├── app/                           # SaaS multi-tenant backend
+│   ├── config.py                  # Centralized settings (pydantic-settings)
+│   ├── database.py                # PostgreSQL + SQLite fallback
+│   ├── models.py                  # Tenant, ApiKey, UsageRecord
+│   ├── dependencies.py            # Auth middleware (X-API-Key)
+│   ├── main.py                    # FastAPI entry point
+│   ├── llm/                       # LLM provider abstraction
+│   │   ├── base.py                # Abstract LLMProvider interface
+│   │   ├── deepseek.py            # DeepSeek implementation
+│   │   ├── openai_compat.py       # OpenAI-compatible (OpenAI, Ollama)
+│   │   └── factory.py             # Provider factory
+│   ├── services/                  # Business logic services
+│   │   ├── classifier_service.py  # Multi-tenant classifier
+│   │   ├── orchestrator_service.py# Multi-tenant orchestrator
+│   │   └── billing_service.py     # Usage tracking + quota enforcement
+│   └── routers/                   # API endpoints
+│       ├── alerts.py              # POST /v1/alert, GET /v1/health, GET /v1/stats
+│       └── admin.py               # POST /v1/admin/tenants, /api-keys
+│
+├── alembic/                       # Database migrations
+├── Dockerfile                     # Multi-stage Docker build
+├── docker-compose.yml             # app + PostgreSQL + ChromaDB
+│
 ├── classifier.py              # L1/L2 hybrid classifier (vector + keyword fallback)
 ├── integration_module.py      # API webhook v2.0 (ChromaDB + DeepSeek + PagerDuty)
 ├── orchestrator.py            # L3/L4 incident diagnostician
-├── slack_bot.py               # Slack bot (Socket Mode) — DM, @mention, /aegis
+├── slack_bot.py               # Slack bot (Socket Mode)
 ├── tickets_dataset.csv        # 77 IT support tickets in 8 categories
 ├── test_classifier.py         # Accuracy tests (22 tickets)
 ├── cross_validation.py        # 5-fold cross-validation with metrics
 ├── test_integration.py        # Import verification for integration module
 ├── AEGIS_PATTERNS.md          # 20 real incident patterns (L3/L4 knowledge base)
 ├── ARCHITECTURE.md            # Technical architecture and design decisions
+├── CONTRIBUTING.md            # Guide for contributors
+├── CODE_OF_CONDUCT.md         # Community guidelines
+├── CONSULTING_PROJECT.md      # Consulting proposal / case study
 ├── README.md                  # This file
+├── LICENSE                    # MIT License
 ├── requirements.txt           # Python dependencies
 ├── .env.example               # Copy this to .env and fill in your keys
-├── .env                       # API keys (not in repo)
 ├── .gitignore                 # Excludes venv, .env, tickets_db, __pycache__
-├── docs/                      # Business documentation
-│   ├── AEGIS_Business_Document.docx
-│   ├── AEGIS_Executive_Summary.docx
-│   ├── AEGIS_Lean_Canvas_EN.docx
-│   └── AEGIS_Pitch_Deck.pptx
-└── tickets_db/                # ChromaDB vector store (created at runtime)
+└── docs/                      # Business documentation
 ```
 
 ---
@@ -334,34 +351,33 @@ aegis-itsm-agent-dev/
 | Phase | Timeline | Deliverable | Status |
 |-------|---------|-------------|--------|
 | 1 — Core | Weeks 1–2 | Integration Module, end-to-end demo | ✅ Complete |
-| 2 — Beta | Weeks 3–6 | Slack bot, PagerDuty connector, 3 beta customers | 🚧 In Progress |
-| 3 — Agent | Weeks 7–10 | Script auto-execution, feedback loop, web dashboard | 📅 Planned |
-| 4 — Launch | Weeks 11–16 | Landing page, pricing live, 10 paying customers | 📅 Planned |
+| 2 — Beta | Weeks 3–6 | Slack bot, PagerDuty connector, 3 beta customers | ✅ Complete |
+| A — SaaS Base | Weeks 7–8 | Multi-tenant FastAPI, PostgreSQL, LLM abstraction, Docker, billing | ✅ Complete |
+| 3 — Agent | Weeks 9–12 | Script auto-execution, feedback loop, web dashboard | 📅 Planned |
+| 4 — Launch | Weeks 13–18 | Landing page, pricing live, 10 paying customers | 📅 Planned |
 | 5 — Scale | Month 6+ | Jira/Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
 
 ---
 
-## Documentation
+## Consulting
 
-| Document | Description |
-|----------|-------------|
-| [`docs/AEGIS_Business_Document.docx`](./docs/AEGIS_Business_Document.docx) | Full business document (10 sections) |
-| [`docs/AEGIS_Executive_Summary.docx`](./docs/AEGIS_Executive_Summary.docx) | Executive summary for investors and clients |
-| [`docs/AEGIS_Lean_Canvas_EN.docx`](./docs/AEGIS_Lean_Canvas_EN.docx) | Lean Canvas — business model overview |
-| [`docs/AEGIS_Pitch_Deck.pptx`](./docs/AEGIS_Pitch_Deck.pptx) | Pitch Deck — 13 slides for investors and beta customers |
-| [`AEGIS_PATTERNS.md`](./AEGIS_PATTERNS.md) | Full knowledge base — 20 incident patterns |
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Technical architecture and design decisions |
+I offer consulting services to help teams implement AEGIS and automate their incident response:
+
+- **Assessment** — Analyze your current incident management workflow and identify automation opportunities
+- **Implementation** — Deploy AEGIS in your environment (on-premise, cloud, or hybrid)
+- **Customization** — Train the classifier on your historical tickets, add your runbooks to the knowledge base
+- **Integration** — Connect AEGIS to your existing tools (Slack, PagerDuty, Jira, ServiceNow, Datadog)
+- **Training** — Teach your team how to maintain and extend AEGIS
+
+See [`CONSULTING_PROJECT.md`](./CONSULTING_PROJECT.md) for a detailed case study and proposal.
 
 ---
 
-## Target Market
+## Contributing
 
-**SaaS companies of 50–500 employees** with:
-- Support/operations teams of 3–15 people
-- Repetitive incidents but no time to automate
-- Automation-friendly culture
+Contributions are welcome! Please see [`CONTRIBUTING.md`](./CONTRIBUTING.md) for guidelines.
 
-**Expansion:** Mid-market (500–2,000) → Enterprise (ServiceNow) → Hospitals, banks, airlines
+This project follows a [Code of Conduct](./CODE_OF_CONDUCT.md) — be excellent to each other.
 
 ---
 
@@ -371,13 +387,16 @@ Built by **Leopoldo Lara** — AI Solutions Engineer and M.Sc. in Artificial Int
 
 AEGIS was born from firsthand exposure to hundreds of real incidents across 23 enterprise Azure deployments — and the conviction that the knowledge to resolve them should be available to every team, not just the ones with 10-year veterans on call at 3am.
 
+- **GitHub**: [github.com/laral5173](https://github.com/laral5173)
+- **LinkedIn**: [linkedin.com/in/leopoldo-lara](https://linkedin.com/in/leopoldo-lara)
+
 ---
 
 ## License
 
-This project is licensed under the **Apache License, Version 2.0**.  
-See the [`LICENSE`](./LICENSE) file for the full license text.
+This project is licensed under the **MIT License**.  
+See the [`LICENSE`](./LICENSE) file for details.
 
 ---
 
-*See [`docs/`](./docs/) for full business documentation and [`AEGIS_PATTERNS.md`](./AEGIS_PATTERNS.md) for the complete knowledge base.*
+*See [`AEGIS_PATTERNS.md`](./AEGIS_PATTERNS.md) for the complete knowledge base and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for technical design decisions.*

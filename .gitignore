@@ -2,26 +2,65 @@
 venv/
 env/
 ENV/
+.venv/
 
 # Environment variables
 .env
+.env.local
+.env.production
 
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
 
 # Vector databases
 chroma_db/
 tickets_db/
+chroma_data/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
 # OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Logs
 *.log
+logs/
+
+# Alembic
+alembic/versions/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter notebooks (outputs)
+.ipynb_checkpoints/
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Documentation build
+site/
