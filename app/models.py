@@ -43,6 +43,7 @@ class ApiKey(Base):
     prefix = Column(String(10), nullable=False)  # e.g. "aeg_live_" — first chars of key
     key_hash = Column(String(128), nullable=False)  # SHA-256 hash of full key
     name = Column(String(255), nullable=False, default="default")
+    role = Column(String(20), nullable=False, default="api")  # "admin" or "api"
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     last_used_at = Column(DateTime, nullable=True)

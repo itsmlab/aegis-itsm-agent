@@ -5,6 +5,7 @@ Wraps the existing classifier.py logic with per-tenant ChromaDB collections.
 
 from pathlib import Path
 from typing import Optional
+from threading import Lock
 
 import sys
 import io
@@ -34,6 +35,7 @@ class ClassifierService:
 
     def __init__(self):
         self._collections: dict[str, object] = {}
+        self._lock = Lock()
         self._dataset = self._load_dataset()
 
     def _load_dataset(self) -> list[dict]:
@@ -45,17 +47,31 @@ class ClassifierService:
         return dataset
 
     def _get_or_create_collection(self, tenant_id: str):
-        """Get or create a ChromaDB collection for the given tenant."""
-        if tenant_id not in self._collections:
+        """Get or create a ChromaDB collection for the given tenant.
+
+        Thread-safe: uses double-checked locking to protect the _collections
+        dict so that two concurrent requests for the same new tenant don't
+        race on collection creation.
+        """
+        # Fast path: already cached (no lock needed for reads)
+        collection = self._collections.get(tenant_id)
+        if collection is not None:
+            return collection
+
+        # Slow path: create collection under lock
+        with self._lock:
+            # Double-check: another thread may have created it while we waited
+            collection = self._collections.get(tenant_id)
+            if collection is not None:
+                return collection
+
             collection_name = f"tickets_{tenant_id}"
-            try:
-                chroma_client.delete_collection(collection_name)
-            except Exception:
-                pass
-            collection = chroma_client.create_collection(name=collection_name)
-            load_tickets_to_db(self._dataset, collection)
+            collection = chroma_client.get_or_create_collection(name=collection_name)
+            # Only load seed data if the collection is empty (newly created)
+            if collection.count() == 0:
+                load_tickets_to_db(self._dataset, collection)
             self._collections[tenant_id] = collection
-        return self._collections[tenant_id]
+            return collection
 
     def classify(self, tenant_id: str, text: str) -> dict:
         """

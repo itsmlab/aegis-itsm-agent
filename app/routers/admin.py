@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_admin_tenant
 from app.models import Tenant, ApiKey
 from app.services.billing_service import billing_service
 
@@ -54,7 +55,11 @@ class UsageResponse(BaseModel):
 
 
 @router.post("/tenants", response_model=CreateTenantResponse)
-def create_tenant(req: CreateTenantRequest, db: Session = Depends(get_db)):
+def create_tenant(
+    req: CreateTenantRequest,
+    db: Session = Depends(get_db),
+    _admin: Tenant = Depends(get_admin_tenant),
+):
     """Create a new tenant and generate an API key."""
     # Check if slug already exists
     existing = db.query(Tenant).filter(Tenant.slug == req.slug).first()
@@ -105,9 +110,23 @@ def create_tenant(req: CreateTenantRequest, db: Session = Depends(get_db)):
 def create_api_key(
     tenant_id: str,
     name: str = "default",
+    role: str = "api",
     db: Session = Depends(get_db),
+    _admin: Tenant = Depends(get_admin_tenant),
 ):
-    """Generate a new API key for an existing tenant."""
+    """Generate a new API key for an existing tenant.
+
+    Args:
+        tenant_id: UUID of the tenant.
+        name: Human-readable name for the key.
+        role: "api" for regular API access, "admin" for admin-level access.
+    """
+    if role not in ("api", "admin"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid role '{role}'. Must be 'api' or 'admin'.",
+        )
+
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
@@ -119,6 +138,7 @@ def create_api_key(
         prefix=full_key[:10],
         key_hash=key_hash,
         name=name,
+        role=role,
         is_active=True,
     )
     db.add(api_key)
@@ -134,7 +154,10 @@ def create_api_key(
 
 
 @router.get("/tenants")
-def list_tenants(db: Session = Depends(get_db)):
+def list_tenants(
+    db: Session = Depends(get_db),
+    _admin: Tenant = Depends(get_admin_tenant),
+):
     """List all tenants."""
     tenants = db.query(Tenant).all()
     return {
@@ -153,7 +176,11 @@ def list_tenants(db: Session = Depends(get_db)):
 
 
 @router.get("/usage/{tenant_id}", response_model=UsageResponse)
-def get_tenant_usage(tenant_id: str, db: Session = Depends(get_db)):
+def get_tenant_usage(
+    tenant_id: str,
+    db: Session = Depends(get_db),
+    _admin: Tenant = Depends(get_admin_tenant),
+):
     """Get usage statistics for a specific tenant."""
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     if not tenant:

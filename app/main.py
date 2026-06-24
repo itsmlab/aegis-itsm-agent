@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.database import init_db, get_engine
-from app.routers import alerts, admin
+from app.routers import alerts, admin, dashboard
 
 # ── Logging ───────────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(alerts.router)
 app.include_router(admin.router)
+app.include_router(dashboard.router)
 
 
 # ── Root endpoint ─────────────────────────────────────────────
@@ -105,6 +106,7 @@ def root():
             "POST /v1/admin/tenants": "Create tenant (admin)",
             "POST /v1/admin/api-keys": "Generate API key (admin)",
             "GET /v1/admin/tenants": "List tenants (admin)",
+            "GET /dashboard": "Web dashboard (HTML)",
             "GET /docs": "Interactive API documentation",
         },
     }

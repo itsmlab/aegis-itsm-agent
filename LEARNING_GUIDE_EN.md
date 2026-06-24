@@ -1,0 +1,1162 @@
+# 📘 AEGIS — Learning Guide
+
+> *Welcome to AEGIS. This guide is designed for anyone who wants to understand how the system works — whether you're a developer, DevOps, PM, or just curious. Everything is explained in plain language, with analogies and practical examples.*
+
+> *"The knowledge to solve any incident already exists. You just need to know where to find it."*
+
+---
+
+## Table of Contents
+
+1. [🧠 Glossary of Technical Terms](#1--glossary-of-technical-terms)
+2. [🏗️ The Architecture (The Incident Hospital)](#2--the-architecture-the-incident-hospital)
+3. [🔄 The Journey of an Alert (Complete Flow)](#3--the-journey-of-an-alert-complete-flow)
+4. [📂 Key Files Explained](#4--key-files-explained)
+5. [🛠️ Useful Commands (Your Toolbox)](#5--useful-commands-your-toolbox)
+6. [❓ Frequently Asked Questions](#6--frequently-asked-questions)
+
+---
+
+## 1. 🧠 Glossary of Technical Terms
+
+Each term has a card with three parts:
+- **What is it?** — Simple explanation, like explaining to a teammate
+- **What is it used for in AEGIS?** — Its purpose in the project
+- **🔍 You'll find it in:** — File(s) where it's used
+
+---
+
+### FastAPI
+
+**What is it?** A modern Python framework for building REST APIs. It's fast (as the name suggests), easy to use, and generates automatic documentation.
+
+**What is it used for in AEGIS?** It's the heart of the backend. It defines all endpoints (`/v1/alert`, `/v1/health`, etc.), validates incoming and outgoing data, and generates interactive documentation at `/docs`.
+
+**🔍 You'll find it in:** `app/main.py`, `app/routers/alerts.py`, `app/routers/admin.py`
+
+---
+
+### Uvicorn
+
+**What is it?** The "engine" that runs FastAPI. It's an ASGI server (the modern version of WSGI) that allows Python to handle many simultaneous connections.
+
+**What is it used for in AEGIS?** When you run `python app/main.py` or `uvicorn app.main:app --reload`, Uvicorn starts the server and begins listening for requests at `http://localhost:8000`.
+
+**🔍 You'll find it in:** `app/main.py` (line 118: `uvicorn.run(...)`)
+
+---
+
+### Endpoint / Route
+
+**What is it?** Each "URL address" exposed by the API. Like a specific door in a building — each door leads to a different place.
+
+**What is it used for in AEGIS?** Defines the system's entry points:
+- `POST /v1/alert` → Send an alert for diagnosis
+- `GET /v1/health` → Check if the system is alive
+- `GET /v1/stats` → View usage statistics
+- `POST /v1/admin/tenants` → Create a new client
+
+**🔍 You'll find it in:** `app/routers/alerts.py`, `app/routers/admin.py`
+
+---
+
+### Pydantic
+
+**What is it?** A "quality control" for JSON data. It defines exactly which fields are expected, their types, and whether they're required or optional. If someone sends incorrect data, Pydantic rejects it before it reaches the program logic.
+
+**What is it used for in AEGIS?** Defines data models: `AlertRequest` (incoming), `DiagnosisResponse` (outgoing), `CreateTenantRequest` (for creating clients). It's also used for system configuration with `pydantic-settings`.
+
+**🔍 You'll find it in:** `app/config.py`, `app/routers/alerts.py`, `app/routers/admin.py`
+
+---
+
+### SQLAlchemy
+
+**What is it?** A "translator" between Python and relational databases. It lets you work with databases using Python objects instead of writing SQL directly.
+
+**What is it used for in AEGIS?** Manages all persistent information: tenants (clients), API keys, and usage records. Supports PostgreSQL in production and SQLite in development.
+
+**🔍 You'll find it in:** `app/database.py`, `app/models.py`
+
+---
+
+### ORM (Object-Relational Mapping)
+
+**What is it?** The technique of representing database tables as Python classes. Each table row is an object, each column is an attribute.
+
+**What is it used for in AEGIS?** The `Tenant`, `ApiKey`, and `UsageRecord` classes are ORM models. When you do `db.query(Tenant).first()`, SQLAlchemy translates that to SQL, queries the database, and returns a Python object.
+
+**🔍 You'll find it in:** `app/models.py`
+
+---
+
+### PostgreSQL
+
+**What is it?** An open-source relational database, very powerful and reliable. It's the project's main database.
+
+**What is it used for in AEGIS?** Stores operational data: client information (tenants), their API keys, and usage records for billing.
+
+**🔍 You'll find it in:** `app/config.py` (line 42: `DATABASE_URL`), `docker-compose.yml`
+
+---
+
+### SQLite
+
+**What is it?** A database that doesn't need a server. Everything is stored in a single local file. Ideal for development and testing.
+
+**What is it used for in AEGIS?** It's the automatic "Plan B". If you don't have PostgreSQL installed, the system creates an `aegis_dev.db` file and works just the same. This lets you develop without needing to install PostgreSQL.
+
+**🔍 You'll find it in:** `app/database.py` (function `_create_sqlite_engine()`)
+
+---
+
+### Alembic
+
+**What is it?** A "version control" system for your database. Just like Git tracks changes in your code, Alembic tracks changes in your database schema.
+
+**What is it used for in AEGIS?** When you add a new field to a model or create a new table, Alembic generates a "migration" that can be applied to any database (development, testing, production).
+
+**🔍 You'll find it in:** `alembic/` (folder), `alembic.ini`
+
+---
+
+### ChromaDB
+
+**What is it?** A special database that understands the *meaning* of texts, not just exact words. It's a "vector database" (Vector DB).
+
+**What is it used for in AEGIS?** Stores the 77 historical tickets as vectors (embeddings). When a new ticket arrives, ChromaDB finds the most similar historical tickets by meaning, not by exact words.
+
+**🔍 You'll find it in:** `classifier.py` (line 137: `chromadb.PersistentClient`), `tickets_db/` (data folder)
+
+---
+
+### Embedding
+
+**What is it?** Imagine converting a sentence into a numeric code that captures its "essence" or "meaning". So "I forgot my password" and "I can't log in" end up with similar codes, even though they use different words.
+
+**What is it used for in AEGIS?** The classifier converts each ticket into an embedding (a vector of 384 numbers) and looks for historical tickets with similar embeddings. It's like searching by "scent" instead of by labels.
+
+**🔍 You'll find it in:** `classifier.py` (line 133: `model.encode(description)`)
+
+---
+
+### SentenceTransformers
+
+**What is it?** A Python library that generates embeddings from text. It takes a sentence and returns a numeric vector.
+
+**What is it used for in AEGIS?** It's the tool the classifier uses to convert tickets into vectors. We use the `all-MiniLM-L6-v2` model because it's small, fast, and gives good results.
+
+**🔍 You'll find it in:** `classifier.py` (line 12: `from sentence_transformers import SentenceTransformer`)
+
+---
+
+### all-MiniLM-L6-v2
+
+**What is it?** The specific embedding model we use. It's a small model (80 MB) that generates 384-dimensional vectors. "Mini" because it's lightweight, "LM" because it's a language model.
+
+**What is it used for in AEGIS?** It's the classifier's brain. It converts text into numeric vectors that ChromaDB can search.
+
+**🔍 You'll find it in:** `classifier.py` (line 34: `EMBEDDING_MODEL = "all-MiniLM-L6-v2"`)
+
+---
+
+### Vector DB (Vector Database)
+
+**What is it?** A database that searches by "semantic similarity" instead of exact matches. Like searching for "movies similar to this one" instead of "movies that have the word X in the title".
+
+**What is it used for in AEGIS?** ChromaDB is our Vector DB. When classifying a ticket, we search for the most similar historical tickets by meaning, not by keywords.
+
+**🔍 You'll find it in:** `classifier.py` (lines 307-310: `collection.query(query_embeddings=[...])`)
+
+---
+
+### RAG (Retrieval-Augmented Generation)
+
+**What is it?** A technique that combines two steps: first it **retrieves** relevant information from a knowledge base, then it **generates** a response using an LLM with that information as context. Like a student who first checks their notes and then answers the exam.
+
+**What is it used for in AEGIS?** The L3/L4 orchestrator works with RAG:
+1. **Retrieves:** Loads `AEGIS_PATTERNS.md` (the 20 incident patterns)
+2. **Generates:** Sends the alert + patterns to the LLM (DeepSeek)
+3. **Responds:** The LLM identifies the most similar pattern and generates a personalized diagnosis
+
+**🔍 You'll find it in:** `orchestrator.py` (lines 89-95: the prompt includes the alert + knowledge base)
+
+---
+
+### LLM (Large Language Model)
+
+**What is it?** An AI model trained on enormous amounts of text. It can understand language, answer questions, generate code, etc. Examples: GPT-4, DeepSeek, Llama.
+
+**What is it used for in AEGIS?** It's the "brain" behind L3/L4 diagnosis. It receives the alert and incident patterns, analyzes them, and generates a diagnosis and remediation script.
+
+**🔍 You'll find it in:** `app/llm/` (entire folder), `orchestrator.py`
+
+---
+
+### DeepSeek
+
+**What is it?** An LLM created by DeepSeek (a Chinese company). It's very cost-effective ($0.14 per million tokens) with good quality. It uses an OpenAI-compatible API.
+
+**What is it used for in AEGIS?** It's the default LLM for L3/L4 diagnosis. Its low cost allows running many diagnoses without spending a fortune.
+
+**🔍 You'll find it in:** `app/llm/deepseek.py`, `app/config.py` (line 33: `DEEPSEEK_MODEL = "deepseek-chat"`)
+
+---
+
+### OpenAI-compatible API
+
+**What is it?** A standard format for communicating with LLMs. If an AI provider says "OpenAI-compatible API", it means you can use the same code you'd use with ChatGPT, just changing the URL and API key.
+
+**What is it used for in AEGIS?** DeepSeek, OpenAI, and Ollama (local) all use the same API format. This lets you switch providers by just changing a variable in `.env`.
+
+**🔍 You'll find it in:** `app/llm/openai_compat.py`, `app/llm/factory.py`
+
+---
+
+### Multi-tenancy
+
+**What is it?** An architecture where a single system serves multiple clients (tenants) while keeping their data isolated. Like an apartment building: same building, different apartments, each with its own key.
+
+**What is it used for in AEGIS?** Allows multiple clients to use the same AEGIS instance, each with their own API key, plan (Shield/Guard/Fortress), and usage limits.
+
+**🔍 You'll find it in:** `app/models.py` (class `Tenant`), `app/dependencies.py` (function `get_current_tenant()`)
+
+---
+
+### Tenant
+
+**What is it?** Each client in a multi-tenant system. It's an organization using the service.
+
+**What is it used for in AEGIS?** Each tenant has:
+- A unique `id` (UUID)
+- An identifying `slug` (e.g., "acme-corp")
+- A `plan` (shield, guard, fortress)
+- One or more `ApiKey` for authentication
+- Their own `UsageRecord` for billing
+
+**🔍 You'll find it in:** `app/models.py` (class `Tenant`)
+
+---
+
+### L1/L2
+
+**What is it?** Support levels 1 and 2. These are routine, recurring tickets: access problems, how-to questions, licenses, simple configurations. They represent 60-70% of support volume.
+
+**What is it used for in AEGIS?** The hybrid classifier (ChromaDB + keywords) is designed to automate these tickets. Examples:
+- "I can't log in" → ACCESS
+- "How do I set up my email signature?" → HOWTO
+- "My Office license expired" → LICENSE
+
+**🔍 You'll find it in:** `classifier.py`, `app/services/classifier_service.py`
+
+---
+
+### L3/L4
+
+**What is it?** Support levels 3 and 4. These are critical incidents: server outages, database failures, network problems. They require deep diagnosis and technical expertise.
+
+**What is it used for in AEGIS?** The orchestrator with RAG + LLM is designed to diagnose these incidents. Examples:
+- "Database server unresponsive, timeout on all connections" → AEGIS-005
+- "p99 latency went from 50ms to 30s after deploy" → AEGIS-001
+
+**🔍 You'll find it in:** `orchestrator.py`, `app/services/orchestrator_service.py`
+
+---
+
+### Hybrid Classifier
+
+**What is it?** A classifier that uses two methods instead of just one. Like having a Plan B in case Plan A fails.
+
+**What is it used for in AEGIS?** The classifier first tries vector search (semantic). If confidence is low (< 45%), it uses keywords as a fallback. This ensures we always have an answer, even for tickets with unusual vocabulary.
+
+**🔍 You'll find it in:** `classifier.py` (function `classify_ticket()`, lines 295-394)
+
+---
+
+### Keyword Fallback
+
+**What is it?** The classifier's "Plan B". If the vector search doesn't find similar tickets with enough confidence, a keyword system determines the category.
+
+**What is it used for in AEGIS?** If someone writes a ticket with very specific words that don't appear in historical tickets, the vector system might not recognize it. Keywords act as a safety net.
+
+**🔍 You'll find it in:** `classifier.py` (function `classify_by_keywords()`, lines 253-293)
+
+---
+
+### Confidence Threshold
+
+**What is it?** A minimum confidence limit. If the system isn't sure enough about its answer, it prefers to say "I don't know" rather than risk giving an incorrect answer.
+
+**What is it used for in AEGIS?** The threshold is 45% (0.45). If the classifier's confidence is lower, it returns UNKNOWN. This reduces false positives: it's better for a ticket to go to human review than to be misclassified.
+
+**🔍 You'll find it in:** `classifier.py` (line 36: `CONFIDENCE_THRESHOLD = 0.45`)
+
+---
+
+### Postmortem
+
+**What is it?** A detailed analysis after a major incident. It documents what happened, why it happened, how it was detected, how it was resolved, and what will be done to prevent it from happening again.
+
+**What is it used for in AEGIS?** The 20 patterns in `AEGIS_PATTERNS.md` are based on real postmortems from companies like AWS, Cloudflare, Google, GitHub, Netflix, and Azure. Each pattern captures the lessons learned from a real incident.
+
+**🔍 You'll find it in:** `AEGIS_PATTERNS.md` (each pattern has a "Source" section with the original postmortem)
+
+---
+
+### Pattern Knowledge Base
+
+**What is it?** A library of documented incident patterns. Each pattern describes: symptoms, diagnosis, and solution.
+
+**What is it used for in AEGIS?** It's the `AEGIS_PATTERNS.md` file with 20 patterns. The orchestrator uses it as context for the LLM. When an alert arrives, the LLM compares the symptoms against each pattern and picks the closest match.
+
+**🔍 You'll find it in:** `AEGIS_PATTERNS.md` (1142 lines, 20 patterns)
+
+---
+
+### Socket Mode (Slack)
+
+**What is it?** A Slack connection mode that doesn't require exposing a public server. The bot connects to Slack through a "socket" (communication channel) initiated by the bot itself.
+
+**What is it used for in AEGIS?** The Slack Bot (`slack_bot.py`) uses Socket Mode. This means you can run it on your local machine or a private server, without needing to configure public URLs or HTTPS.
+
+**🔍 You'll find it in:** `slack_bot.py` (line 29: `from slack_bolt.adapter.socket_mode import SocketModeHandler`)
+
+---
+
+### Webhook
+
+**What is it?** A "doorbell" that rings when an event occurs. System A sends an HTTP request to System B when something important happens.
+
+**What is it used for in AEGIS?** PagerDuty sends alerts to AEGIS via a webhook (`POST /pagerduty`). When an incident occurs in PagerDuty, it "rings the doorbell" of AEGIS with all the details.
+
+**🔍 You'll find it in:** `integration_module.py` (line 450: `@app.post("/pagerduty")`)
+
+---
+
+### X-API-Key
+
+**What is it?** An "ID card" for accessing the API. It's a secret string that identifies who is making the request.
+
+**What is it used for in AEGIS?** Each tenant has one or more API keys. When someone makes a request to `/v1/alert`, they must include the `X-API-Key: aeg_live_...` header. The system looks up the key in the database, identifies the tenant, and checks their plan and quota.
+
+**🔍 You'll find it in:** `app/dependencies.py` (function `get_current_tenant()`)
+
+---
+
+### Docker
+
+**What is it?** A platform for running applications in "containers". A container is like a lightweight virtual machine that includes everything needed for the application to run.
+
+**What is it used for in AEGIS?** The `docker-compose.yml` starts three containers: the AEGIS app, PostgreSQL, and ChromaDB. With a single command (`docker-compose up`), you have the entire system running.
+
+**🔍 You'll find it in:** `Dockerfile`, `docker-compose.yml`
+
+---
+
+### Sandbox (Script Executor)
+
+**What is it?** An isolated, secure environment for running code without risk. Like a "playground" where scripts can run without affecting the real system.
+
+**What is it used for in AEGIS?** It's a planned feature (Phase 3 of the roadmap). The orchestrator generates remediation scripts, but before they run in production, they go through a sandbox where a human reviews and approves them.
+
+**🔍 You'll find it in:** `ARCHITECTURE.md` (section "Script Executor (Phase 3)")
+
+---
+
+## 2. 🏗️ The Architecture (The Incident Hospital)
+
+Imagine AEGIS as a **hospital specialized in IT incidents**. Each area of the hospital has a specific function:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     🏥 AEGIS HOSPITAL                        │
+│                                                              │
+│  🚪 RECEPTION                     📋 ADMINISTRATION         │
+│  (app/main.py + routers/)        (app/routers/admin.py)     │
+│  • Receives the patient          • Registers new clients     │
+│  • Asks for ID                   • Generates credentials     │
+│  • Checks insurance              • Checks history            │
+│                                                              │
+│  🩺 TRIAGE                          💊 PHARMACY             │
+│  (app/services/)                    (app/llm/)              │
+│  • Simple? → Classifier             • DeepSeek (default)    │
+│  • Critical? → Orchestrator         • OpenAI (alternative)  │
+│                                      • Ollama (local)        │
+│                                                              │
+│  📋 RECORDS                        📚 MEDICAL LIBRARY       │
+│  (app/database.py + models.py)     (AEGIS_PATTERNS.md)      │
+│  • Patient data (tenants)          • 20 documented cases     │
+│  • Visit history (usage)           • Symptoms + diagnosis    │
+│                                      • Remediation scripts   │
+│                                                              │
+│  🧰 CONFIGURATION                                           │
+│  (app/config.py)                                             │
+│  • What medications do we have?                              │
+│  • What are our hours?                                       │
+│  • Who do we call in an emergency?                           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 🚪 Reception — API Layer (`app/main.py` + `app/routers/`)
+
+**What does it do?** It's the front door. Everything entering or leaving AEGIS passes through here.
+
+- Receives HTTP requests (alerts, health checks, administration)
+- Validates that data is correct (Pydantic)
+- Identifies the client (X-API-Key)
+- Checks coverage (plan and quota)
+- Routes to the appropriate service
+
+**Key files:**
+- `app/main.py` — Entry point, configures the app, CORS, error handling
+- `app/routers/alerts.py` — Alert endpoints: `POST /v1/alert`, `GET /v1/health`, `GET /v1/stats`
+- `app/routers/admin.py` — Admin endpoints: create tenants, generate API keys
+
+**To explore further:** Open `http://localhost:8000/docs` when the server is running. You'll see all documented endpoints.
+
+---
+
+### 🩺 Triage — Service Layer (`app/services/`)
+
+**What does it do?** It's the diagnosis area. It determines the severity of the incident and applies the appropriate treatment.
+
+- **ClassifierService** — For simple tickets (L1/L2): searches history, classifies by category, suggests resolution
+- **OrchestratorService** — For critical incidents (L3/L4): consults the pattern library, calls the LLM, generates diagnosis
+- **BillingService** — Tracks how many incidents each client has used this month
+
+**Key files:**
+- `app/services/classifier_service.py` — Multi-tenant classifier
+- `app/services/orchestrator_service.py` — LLM-powered orchestrator
+- `app/services/billing_service.py` — Usage tracking and billing
+
+**To explore further:** Check how `alerts.py` calls these services. The `process_alert()` function is the best starting point.
+
+---
+
+### 💊 Pharmacy — LLM Layer (`app/llm/`)
+
+**What does it do?** This is where the "medications" (language models) are stored. Depending on what the hospital has configured, it uses one or another.
+
+- **DeepSeek** — The default medication (cost-effective and effective)
+- **OpenAI** — Alternative (GPT-4o-mini, etc.)
+- **Ollama** — For running models locally (Llama 3, etc.)
+
+All medications come in the same format (OpenAI-compatible), so switching them is as simple as changing a variable in `.env`.
+
+**Key files:**
+- `app/llm/base.py` — The "prescription" (interface) all medications must follow
+- `app/llm/deepseek.py` — DeepSeek implementation
+- `app/llm/openai_compat.py` — OpenAI and Ollama implementation
+- `app/llm/factory.py` — The "pharmacist" that selects the right medication
+
+**To explore further:** Look at `factory.py` to understand how the provider is selected based on `LLM_PROVIDER`.
+
+---
+
+### 📋 Records — Database Layer (`app/database.py` + `app/models.py`)
+
+**What does it do?** Stores all patient information (clients) and their visit history.
+
+- **Tenant** — Each client: name, plan, active status
+- **ApiKey** — Each client's credentials (stored as hash for security)
+- **UsageRecord** — Log of each diagnosis: when, which endpoint, how many tokens used
+
+**Key files:**
+- `app/database.py` — Database connection, with automatic PostgreSQL → SQLite fallback
+- `app/models.py` — Classes representing database tables
+
+**To explore further:** If you have PostgreSQL, connect and explore the `tenants`, `api_keys`, `usage_records` tables.
+
+---
+
+### 📚 Medical Library — Knowledge Base (`AEGIS_PATTERNS.md`)
+
+**What does it do?** Stores knowledge from past incidents. It contains 20 documented cases from real incidents at companies like AWS, Cloudflare, Google, GitHub, Netflix, and Azure.
+
+Each case includes:
+- **Symptoms** — What warning signs appear?
+- **Diagnosis** — What actually happened?
+- **Remediation Script** — How was it fixed?
+
+**Key file:**
+- `AEGIS_PATTERNS.md` — 1142 lines, 20 patterns
+
+**To explore further:** Open the file and read 2-3 patterns. You'll notice they all follow the same structure. That consistency is what allows the LLM to understand and use them.
+
+---
+
+### 🧰 Configuration — Settings Layer (`app/config.py`)
+
+**What does it do?** Centralizes all system configuration in one place. It's like the hospital's control panel.
+
+Here you define:
+- File paths (where `AEGIS_PATTERNS.md`, `tickets_dataset.csv` are)
+- Models (which embedding model, which LLM to use)
+- Connections (PostgreSQL URL, ChromaDB host)
+- Limits (how many incidents per month on Shield plan)
+- Operation flags (debug, authentication required)
+
+**Key file:**
+- `app/config.py` — `Settings` class with pydantic-settings
+
+**To explore further:** Check the variables in `app/config.py` and compare them with `.env.example`. You'll see how environment variables override default values.
+
+---
+
+## 3. 🔄 The Journey of an Alert (Complete Flow)
+
+Let's follow two alerts from entry to diagnosis. Like a "day in the life of a ticket".
+
+---
+
+### Scenario 1: "I can't log in" (L1/L2)
+
+**Step 1 — The patient arrives**
+
+Someone sends an alert to reception:
+
+```bash
+curl -X POST http://localhost:8000/v1/alert \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": "manual",
+    "severity": "low",
+    "title": "I can'\''t log in",
+    "description": "I get error 403 when trying to access the application"
+  }'
+```
+
+**Step 2 — Identification**
+
+Reception (endpoint `POST /v1/alert`) asks for ID. It reads the `X-API-Key` header. If there's none (development mode), it uses the "default" tenant. If there is one, it looks up the key in the database and gets the tenant.
+
+**Step 3 — Insurance check**
+
+The system checks the tenant's plan. If it's "shield", it counts how many incidents they've used this month. If they've reached the limit (50), it responds with HTTP 429: "You've run out of queries this month, upgrade your plan."
+
+**Step 4 — Triage: Is it serious?**
+
+The `route_severity()` function analyzes:
+- `severity = "low"` → Not critical
+- The description doesn't contain words like "outage", "down", "500" → Not critical
+
+Result: **L1/L2** → Goes to the classifier.
+
+**Step 5 — L1/L2 Diagnosis**
+
+The classifier (`classifier_service.classify()`) does the following:
+
+1. **Converts text to embedding:** Takes "I can't log in, I get error 403" and converts it into a vector of 384 numbers representing its meaning.
+
+2. **Searches ChromaDB:** Finds the 5 most similar historical tickets by meaning. It finds tickets like:
+   - "User cannot log in, error 403 forbidden" → ACCESS (distance: 0.15)
+   - "Need access to Salesforce, account not provisioned" → ACCESS (distance: 0.32)
+   - "Password reset requested" → ACCESS (distance: 0.41)
+
+3. **Weighted voting:** Each ticket "votes" for its category, but closer tickets have more weight. ACCESS wins with 88.4% confidence.
+
+4. **Checks threshold:** 88.4% > 45% → High confidence, no keyword fallback needed.
+
+5. **Prepares response:** Takes the resolution from the closest ticket: "Added user to correct AD group, cleared cache".
+
+**Step 6 — Visit log**
+
+A `UsageRecord` is saved to the database: "Tenant X used the /v1/alert endpoint on 06/20/2026".
+
+**Step 7 — Response**
+
+```json
+{
+  "timestamp": "2026-06-20T14:30:00.123456",
+  "source": "manual",
+  "severity": "low",
+  "level": "L1/L2",
+  "pattern_id": "L1-001",
+  "pattern_name": "Access / Authentication Issue",
+  "diagnosis": "User authentication or authorization failure detected. (classified via vector_weighted, confidence 88.4%)",
+  "script": "Suggested resolution: Added user to correct AD group, cleared cache\n\n---\n\nStandard procedure:\n1. Verify user account is active\n2. Reset password if needed\n3. Check group/role assignments\n4. Clear browser cache and cookies",
+  "confidence": "HIGH",
+  "category_scores": {
+    "ACCESS": 88.4,
+    "HOWTO": 5.2,
+    "SECURITY": 3.1
+  }
+}
+```
+
+**Total time: ~2 seconds.** The ticket is classified and has a suggested resolution.
+
+---
+
+### Scenario 2: "The database server went down" (L3/L4)
+
+**Step 1 — The patient arrives**
+
+PagerDuty sends a critical alert:
+
+```bash
+curl -X POST http://localhost:8000/v1/alert \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": "pagerduty",
+    "severity": "critical",
+    "title": "Database connection timeout",
+    "description": "Application returning 500 errors. Connection pool exhausted. Replication lag at 300 seconds."
+  }'
+```
+
+**Steps 2 and 3 — Identification and insurance check**
+
+Same as the previous scenario.
+
+**Step 4 — Triage: Is it serious?**
+
+`route_severity()` detects:
+- `severity = "critical"` → Red alert!
+- The description contains "timeout", "500" → Confirmed
+
+Result: **L3/L4** → Goes to the orchestrator.
+
+**Step 5 — L3/L4 Diagnosis**
+
+The orchestrator (`orchestrator_service.diagnose()`) does the following:
+
+1. **Loads the medical library:** Reads `AEGIS_PATTERNS.md` completely (1142 lines, 20 patterns).
+
+2. **Builds the prompt:** Prepares a message for the LLM with:
+   - **System prompt:** "You are Aegis, an autonomous triage agent. Compare the alert symptoms against the patterns. Respond ONLY with JSON."
+   - **User prompt:** The user's alert + all 20 patterns.
+
+3. **LLM analyzes:** DeepSeek receives the prompt, compares the alert symptoms ("500 errors", "connection pool exhausted", "replication lag 300s") against each pattern, and determines the closest match is **AEGIS-005 (Database Failover)**.
+
+4. **Generates response:** DeepSeek returns a JSON with:
+   - `id`: "AEGIS-005"
+   - `name`: "Database Failover"
+   - `diagnosis`: Explanation adapted to the specific alert
+   - `script`: Bash remediation script from the pattern
+
+**Step 6 — Visit log**
+
+A `UsageRecord` is saved to the database.
+
+**Step 7 — Response**
+
+```json
+{
+  "timestamp": "2026-06-20T14:31:00.654321",
+  "source": "pagerduty",
+  "severity": "critical",
+  "level": "L3/L4",
+  "pattern_id": "AEGIS-005",
+  "pattern_name": "Database Failover",
+  "diagnosis": "The primary database appears to have failed or become saturated, triggering an automatic failover. Connection pool exhaustion and replication lag of 300 seconds indicate the new primary is struggling to catch up. This matches the Database Failover pattern (AEGIS-005) from AWS RDS March 2023.",
+  "script": "#!/bin/bash\n# AEGIS-005: Remediation for database failover\n\n# 1. Verify failover status\naws rds describe-db-instances ...\n\n# 2. Reconnect application (restart connection pools)\nkubectl rollout restart deployment/api\n\n# 3. Verify replica lag after failover\naws rds describe-db-instances ...\n\n# 4. Warm up cache\npsql -h new-primary -d my-db -c \"SELECT pg_prewarm('large_table');\"\n\n# 5. Alert DBA team\necho \"Failover detected on database.\" | mail -s \"DB Failover Alert\" dba@company.com",
+  "confidence": null
+}
+```
+
+**Total time: ~10-15 seconds.** The critical incident has a diagnosis and remediation script ready.
+
+---
+
+## 4. 📂 Key Files Explained
+
+Each file is presented as a "character" in the project. Here we explain **what it does**, **how to use it**, and **what it contains**.
+
+---
+
+### 4.1 `classifier.py` — The Classifier
+
+```
+🎭 Personality: The receptionist expert at classifying tickets
+```
+
+**What does it do?**
+Takes a ticket description and compares it against 77 historical tickets to determine the category and suggest a solution. It uses a hybrid system: first searches by meaning (vectors), and if unsure, uses keywords.
+
+**How to use it?**
+- **As a library:** Other files import `classify_ticket()` to classify tickets.
+- **As a standalone program:** `python classifier.py` opens an interactive menu:
+  - Option 1: Classify a new ticket
+  - Option 2: Add a resolved ticket (to teach it)
+  - Option 3: View database statistics
+  - Option 4: Exit
+
+**What does it contain?**
+- **8 categories** with keywords: ACCESS, DATABASE, LICENSE, API, PERFORMANCE, NETWORK, SECURITY, HOWTO
+- **Embedding model:** `all-MiniLM-L6-v2` (converts text to 384-number vectors)
+- **ChromaDB:** Vector database with 77 historical tickets
+- **Weighted voting system:** More similar tickets have more weight in the decision
+- **Keyword fallback:** Plan B if vector search doesn't give good confidence
+
+**🔍 File:** `classifier.py` (529 lines)
+
+---
+
+### 4.2 `orchestrator.py` — The Diagnostician
+
+```
+🎭 Personality: The specialist doctor for critical incidents
+```
+
+**What does it do?**
+Takes a critical alert description, compares it against 20 real incident patterns, and generates a diagnosis + remediation script using an LLM (DeepSeek).
+
+**How to use it?**
+- **As a library:** Other files import `diagnose()` to diagnose incidents.
+- **As a standalone program:** `python orchestrator.py` opens an interactive loop where you write an alert and it diagnoses it.
+
+**What does it contain?**
+- **Knowledge base loader:** Reads `AEGIS_PATTERNS.md` completely
+- **DeepSeek client:** Connects to the DeepSeek API (OpenAI-compatible)
+- **Prompt system:** Clear instructions for the LLM to return valid JSON
+- **Response parser:** Extracts `id`, `name`, `diagnosis`, and `script` from JSON
+- **Error handling:** If the API fails or JSON is invalid, returns UNKNOWN
+
+**🔍 File:** `orchestrator.py` (176 lines)
+
+---
+
+### 4.3 `slack_bot.py` — The Slack Bot
+
+```
+🎭 Personality: The assistant that lives in Slack
+```
+
+**What does it do?**
+Listens to messages in Slack and responds with AEGIS diagnoses. It can be @mentioned in channels, receive direct messages, or use the `/aegis` command.
+
+**How to use it?**
+```bash
+python slack_bot.py
+```
+Then in Slack:
+- `@AEGIS I can't log in` → Responds with diagnosis
+- Direct message to the bot: "The server is returning error 500" → Diagnoses
+- `/aegis diagnose The database went down` → Diagnoses
+
+**What does it contain?**
+- **Socket Mode connection:** Connects to Slack without needing a public server
+- **Dual-mode:** Uses SaaS services (`app/services/`) if available, or legacy modules if not
+- **Severity routing:** Decides if the query is L1/L2 or L3/L4 based on keywords
+- **Response formatting:** Uses emojis and Slack formatting for clear responses
+
+**🔍 File:** `slack_bot.py` (262 lines)
+
+---
+
+### 4.4 `AEGIS_PATTERNS.md` — The Pattern Library
+
+```
+🎭 Personality: The book of clinical cases
+```
+
+**What does it contain?**
+20 real incident patterns from companies like AWS, Cloudflare, Google, GitHub, Netflix, and Azure. Each pattern documents:
+
+- **Symptoms:** What warning signs appear? (presented in a table)
+- **Diagnosis:** What actually happened? (detailed explanation)
+- **Remediation Script:** How was it fixed? (bash code ready to run)
+
+**How is it used in the system?**
+The orchestrator reads it completely and passes it to the LLM as context. The LLM compares the current alert against each pattern and picks the closest match.
+
+**Example of a pattern (AEGIS-001):**
+- **Source:** AWS Kinesis Event - November 2020
+- **Symptoms:** API 503, latency increases, throttling, Kinesis exceptions
+- **Diagnosis:** Cascade dependency saturation (domino effect from a non-resilient dependency)
+- **Script:** Bash that identifies the slow dependency, activates circuit breaker, scales, and restarts
+
+**🔍 File:** `AEGIS_PATTERNS.md` (1142 lines, 20 patterns)
+
+---
+
+### 4.5 `integration_module.py` — The Universal Webhook (Legacy)
+
+```
+🎭 Personality: The previous version of the receptionist
+```
+
+**What does it do?**
+It's the standalone webhook version that received alerts before the SaaS (`app/`) existed. It's still functional and useful as a reference.
+
+**Endpoints:**
+- `POST /alert` — Receives alerts and diagnoses them (same as `/v1/alert` in SaaS)
+- `GET /health` — Checks system status
+- `POST /pagerduty` — Webhook for PagerDuty (parses v2 and v3 payloads)
+- `GET /stats` — Classifier statistics
+
+**Why does it exist if the SaaS is already there?**
+The integration module was the first version. When multi-tenancy, billing, and authentication were added, the `app/` folder was created. But `integration_module.py` is still useful for:
+- Understanding the project's evolution
+- Having a simple reference point
+- Running quick tests without the full SaaS infrastructure
+
+**🔍 File:** `integration_module.py` (520 lines)
+
+---
+
+## 5. 🛠️ Useful Commands (Your Toolbox)
+
+Commands grouped by mission, so you can quickly find what you need.
+
+---
+
+### 🚀 To start the project
+
+```bash
+# 1. Clone (if you haven't already)
+git clone https://github.com/laral5173/aegis-itsm-agent.git
+cd aegis-itsm-agent
+
+# 2. Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # Mac/Linux
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Configure API key (create .env file)
+# echo DEEPSEEK_API_KEY=your-key >> .env
+
+# 5. Run it!
+python app/main.py
+
+# 6. Open interactive documentation:
+#    http://localhost:8000/docs
+```
+
+---
+
+### 🧪 To test individual components
+
+```bash
+# L1/L2 Classifier (interactive menu)
+python classifier.py
+
+# L3/L4 Orchestrator (describe an alert)
+python orchestrator.py
+
+# Slack Bot (requires tokens in .env)
+python slack_bot.py
+```
+
+---
+
+### 📊 To evaluate the model
+
+```bash
+# Accuracy tests (22 test tickets)
+python test_classifier.py
+
+# 5-fold cross-validation
+python cross_validation.py
+```
+
+---
+
+### 🐳 To use Docker
+
+```bash
+# Starts everything: app + PostgreSQL + ChromaDB
+docker-compose up
+```
+
+---
+
+### 📬 To test the API
+
+```bash
+# Simple ticket (L1/L2) — Windows CMD
+curl -X POST http://localhost:8000/v1/alert ^
+  -H "Content-Type: application/json" ^
+  -d "{\"source\":\"manual\",\"severity\":\"low\",\"title\":\"Can't log in\",\"description\":\"Error 403 when logging in\"}"
+
+# Simple ticket (L1/L2) — PowerShell
+curl -X POST http://localhost:8000/v1/alert `
+  -H "Content-Type: application/json" `
+  -d '{"source":"manual","severity":"low","title":"Can'\''t log in","description":"Error 403 when logging in"}'
+
+# Critical incident (L3/L4)
+curl -X POST http://localhost:8000/v1/alert ^
+  -H "Content-Type: application/json" ^
+  -d "{\"source\":\"pagerduty\",\"severity\":\"critical\",\"title\":\"DB down\",\"description\":\"Database connection timeout\"}"
+
+# Check system status
+curl http://localhost:8000/v1/health
+
+# View usage statistics
+curl http://localhost:8000/v1/stats
+```
+
+---
+
+### 🔧 For administration
+
+```bash
+# Create a new tenant (client)
+curl -X POST http://localhost:8000/v1/admin/tenants ^
+  -H "Content-Type: application/json" ^
+  -d "{\"name\":\"My Company\",\"slug\":\"my-company\",\"plan\":\"shield\"}"
+
+# List all tenants
+curl http://localhost:8000/v1/admin/tenants
+
+# View usage for a specific tenant
+curl http://localhost:8000/v1/admin/usage/{tenant_id}
+```
+
+---
+
+## 6. ❓ Frequently Asked Questions
+
+---
+
+### 1. "I don't have a DeepSeek API key, can I still try the project?"
+
+**Yes.** The L1/L2 classifier works completely without an API key. Only the L3/L4 orchestrator (which uses the LLM) needs it. You can try:
+- `python classifier.py` — Interactive classifier menu
+- `POST /v1/alert` with severity "low" or "medium" — Will use the classifier
+- `GET /v1/health` — You'll see the system responds
+
+If you try an L3/L4 diagnosis without an API key, the system will return UNKNOWN with a message indicating the key is missing.
+
+---
+
+### 2. "Can I use ChatGPT instead of DeepSeek?"
+
+**Yes.** In your `.env` file, change:
+```env
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your-openai-key
+OPENAI_MODEL=gpt-4o-mini
+```
+You can also use Ollama (local models):
+```env
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=llama3
+```
+The system uses a common interface (OpenAI-compatible), so switching providers is just a configuration change.
+
+---
+
+### 3. "How do I teach the classifier a new ticket?"
+
+Two ways:
+
+**Option A — From the interactive menu:**
+```bash
+python classifier.py
+# Option 2: "Add a resolved ticket"
+# It will ask for: description, resolution, and category
+```
+
+**Option B — Editing the CSV:**
+Open `tickets_dataset.csv` and add a new row:
+```csv
+id,description,resolution,category
+T078,User cannot access VPN from home,Added user to VPN group and updated firewall rules,ACCESS
+```
+The classifier loads the CSV automatically on startup.
+
+---
+
+### 4. "What does it mean when the response is UNKNOWN?"
+
+It means the classifier didn't find any historical ticket similar enough. The confidence didn't reach the 45% threshold. This can happen for two reasons:
+
+1. **The ticket is a new type** that doesn't exist in the 77 historical tickets.
+2. **The ticket is poorly written** or uses very different vocabulary.
+
+**What to do?** Review the ticket manually and, once resolved, add it to the database so the classifier can learn.
+
+---
+
+### 5. "Do I absolutely need PostgreSQL?"
+
+**No.** The system has automatic fallback to SQLite. If you don't have PostgreSQL installed:
+1. The system detects it on startup
+2. Creates an `aegis_dev.db` file in the project root
+3. Everything works the same
+
+For local development, SQLite is perfect. For production, PostgreSQL is recommended.
+
+---
+
+### 6. "How do I create a new client (tenant)?"
+
+Use the administration endpoint:
+
+```bash
+curl -X POST http://localhost:8000/v1/admin/tenants \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Acme Corp", "slug": "acme-corp", "plan": "shield"}'
+```
+
+The response will include the new tenant's API key. **Save it**, it's only shown once.
+
+Available plans:
+- **shield:** Up to 50 incidents/month
+- **guard:** Unlimited incidents
+- **fortress:** Unlimited incidents + enterprise features
+
+---
+
+### 7. "How do I add a new incident pattern?"
+
+Edit `AEGIS_PATTERNS.md` and add a new block at the end following the existing format:
+
+```markdown
+## Pattern AEGIS-021
+**Name:** Your pattern name
+**Source:** Incident source
+
+### Symptoms (automatically detectable)
+
+| Symptom | Where to see | Typical format |
+|---------|--------------|----------------|
+| Symptom 1 | Where to see it | Typical format |
+
+### Diagnosis (root cause)
+
+Explanation of what actually happened.
+
+### Remediation Script
+
+```bash
+#!/bin/bash
+# Remediation commands
+```
+```
+
+The orchestrator will load it automatically on the next diagnosis.
+
+---
+
+### 8. "The Slack Bot isn't working, what should I check?"
+
+Follow this checklist:
+
+1. **Are the tokens in `.env`?**
+   ```
+   SLACK_BOT_TOKEN=xoxb-...
+   SLACK_APP_TOKEN=xapp-...
+   ```
+
+2. **Does the Slack app have Socket Mode enabled?**
+   Go to your app at [api.slack.com/apps](https://api.slack.com/apps) → Socket Mode → Enabled
+
+3. **Does it have the correct scopes?**
+   - `chat:write` — To send messages
+   - `commands` — For the `/aegis` command
+   - `app_mentions:read` — To detect @mentions
+
+4. **Is the Slash Command configured?**
+   `/aegis` with empty Request URL (Socket Mode doesn't need a URL)
+
+5. **Is the bot in the channel?**
+   Invite the bot to the channel where you want to use it.
+
+---
+
+### 9. "Where are the ChromaDB embeddings stored?"
+
+In the `tickets_db/` folder at the project root. This folder is created automatically the first time you run the classifier.
+
+If you want to start from scratch (for example, with a new dataset), just delete the `tickets_db/` folder and the classifier will recreate it.
+
+---
+
+### 10. "How can I contribute to the project?"
+
+1. Check [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contribution guidelines.
+2. The project follows a [Code of Conduct](./CODE_OF_CONDUCT.md).
+3. Contributions can include:
+   - **New patterns** in `AEGIS_PATTERNS.md`
+   - **Classifier improvements** (more tickets, better accuracy)
+   - **New integrations** (Jira, ServiceNow, Datadog)
+   - **Bug fixes** and code improvements
+   - **Documentation** like this guide
+
+---
+
+### 11. "What do the confidence levels HIGH / MEDIUM / LOW mean?"
+
+These are labels to make it easier to interpret the classifier's confidence:
+
+| Label | Range | Meaning |
+|-------|-------|---------|
+| **HIGH** | ≥ 75% | The classifier is very confident. The category is reliable. |
+| **MEDIUM** | 50% – 74% | Moderate confidence. Review manually before acting. |
+| **LOW** | < 50% | Low confidence. Likely requires human review. |
+
+---
+
+### 12. "How do I run tests to verify everything works?"
+
+```bash
+# Classifier tests (22 test tickets)
+python test_classifier.py
+
+# Cross-validation (5-fold, measures real accuracy)
+python cross_validation.py
+
+# Check that the server responds
+curl http://localhost:8000/v1/health
+
+# Check that imports work
+python test_integration.py
+```
+
+---
+
+### 13. "What is the Script Executor and how is it used?"
+
+The **Script Executor** is a planned feature (Phase 3 of the roadmap). Currently, the orchestrator generates remediation scripts, but **does not execute them automatically**. Instead:
+
+1. The orchestrator returns the script in the JSON response
+2. A human reviews the script
+3. If safe, they execute it manually
+
+In the future (Phase 3), scripts will run in an isolated sandbox with human approval.
+
+---
+
+### 14. "Can I run the classifier without starting the server?"
+
+**Yes.** The classifier and orchestrator can be run as standalone programs:
+
+```bash
+# Classifier with interactive menu
+python classifier.py
+
+# Orchestrator with interactive loop
+python orchestrator.py
+```
+
+This is useful for:
+- Testing the classifier with custom tickets
+- Adding tickets to the database
+- Viewing statistics without the web server
+
+---
+
+### 15. "What do I do if I see a 'DEEPSEEK_API_KEY not configured' error?"
+
+It means the L3/L4 orchestrator can't find the DeepSeek API key. Solution:
+
+1. Create a `.env` file in the project root (you can copy `.env.example`)
+2. Add: `DEEPSEEK_API_KEY=your-api-key`
+3. Get a free key at [platform.deepseek.com](https://platform.deepseek.com)
+
+If you only want to test the L1/L2 classifier, this error won't affect you.
+
+---
+
+> **Found something to improve in this guide?**  
+> Contributions are welcome. Check [`CONTRIBUTING.md`](./CONTRIBUTING.md) to learn how to help.
+
+

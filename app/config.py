@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     DEFAULT_TENANT_ID: str = "default"
     # If True, all endpoints require X-API-Key authentication
     AUTH_REQUIRED: bool = False
+    # Master admin key for bootstrapping (create first admin tenant).
+    # If set, this key can access admin endpoints without a DB record.
+    ADMIN_API_KEY: Optional[str] = None
 
     # -- Rate limiting / billing -------------------------------------
     SHIELD_MAX_INCIDENTS_PER_MONTH: int = 50
