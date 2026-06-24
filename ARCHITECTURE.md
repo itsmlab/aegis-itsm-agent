@@ -223,8 +223,8 @@ aegis-itsm-agent/
 |-------|---------|-------|--------|
 | 1 — Patterns | Completed | 20 incident patterns, hybrid classifier, orchestrator, v2 integration | ✅ Done |
 | 2 — Beta | Weeks 3–6 | Slack bot, PagerDuty, 3 beta customers | 🔜 Next |
-| 3 — Agent | Weeks 7–10 | Script auto-execution sandbox, feedback loop | 📅 Planned |
-| 4 — Launch | Weeks 11–16 | Landing page, pricing live, 10 paying customers | 📅 Planned |
+| 3 — Agent | Weeks 9–12 | Script auto-execution sandbox, feedback loop | 📅 Planned |
+| 4 — Launch | Weeks 13–18 | Landing page, pricing live, 10 paying customers | 📅 Planned |
 | 5 — Scale | Month 6+ | Jira, Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
 
 ---

@@ -7,7 +7,7 @@
 ![LangChain](https://img.shields.io/badge/LangChain-RAG-green?logo=chainlink&logoColor=white)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorDB-orange)
 ![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-purple)
-![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-brightgreen)
+![Status](https://img.shields.io/badge/Status-Phase%20A%20Complete-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
@@ -315,9 +315,16 @@ aegis-itsm-agent/
 │   │   ├── classifier_service.py  # Multi-tenant classifier
 │   │   ├── orchestrator_service.py# Multi-tenant orchestrator
 │   │   └── billing_service.py     # Usage tracking + quota enforcement
+│   ├── templates/                 # HTML templates
+│   │   └── dashboard.html         # Web dashboard (dark mode)
 │   └── routers/                   # API endpoints
 │       ├── alerts.py              # POST /v1/alert, GET /v1/health, GET /v1/stats
-│       └── admin.py               # POST /v1/admin/tenants, /api-keys
+│       ├── admin.py               # POST /v1/admin/tenants, /api-keys
+│       └── dashboard.py           # GET /dashboard (web UI)
+│
+├── scripts/                       # Utility scripts
+│   ├── evaluate_real_data.py      # Cross-validation with real data
+│   └── import_real_data.py        # Import tickets from CSV to ChromaDB
 │
 ├── alembic/                       # Database migrations
 ├── Dockerfile                     # Multi-stage Docker build
@@ -353,7 +360,7 @@ aegis-itsm-agent/
 | 1 — Core | Weeks 1–2 | Integration Module, end-to-end demo | ✅ Complete |
 | 2 — Beta | Weeks 3–6 | Slack bot, PagerDuty connector, 3 beta customers | ✅ Complete |
 | A — SaaS Base | Weeks 7–8 | Multi-tenant FastAPI, PostgreSQL, LLM abstraction, Docker, billing | ✅ Complete |
-| 3 — Agent | Weeks 9–12 | Script auto-execution, feedback loop, web dashboard | 📅 Planned |
+| 3 — Agent | Weeks 9–12 | Script auto-execution, feedback loop | 📅 Planned |
 | 4 — Launch | Weeks 13–18 | Landing page, pricing live, 10 paying customers | 📅 Planned |
 | 5 — Scale | Month 6+ | Jira/Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
 
