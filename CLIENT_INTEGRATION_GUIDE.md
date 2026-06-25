@@ -1,0 +1,634 @@
+# AEGIS — Client Integration Guide
+
+> **Version 3.0.0** · *Autonomous IT Incident Resolution*
+
+---
+
+## Table of Contents
+
+1. [Introduction](#1-introduction)
+2. [Prerequisites](#2-prerequisites)
+3. [Step 1: Initial Setup](#3-step-1-initial-setup)
+4. [Step 2: API Integration](#4-step-2-api-integration)
+5. [Step 3: PagerDuty Integration](#5-step-3-pagerduty-integration)
+6. [Step 4: Slack Integration](#6-step-4-slack-integration)
+7. [Step 5: Dashboard & Monitoring](#7-step-5-dashboard--monitoring)
+8. [Plans & Billing](#8-plans--billing)
+9. [FAQ](#9-faq)
+10. [Support](#10-support)
+
+---
+
+## 1. Introduction
+
+### What is AEGIS?
+
+AEGIS is an **autonomous IT incident resolution system** that acts as your first line of defense. When your monitoring tools (PagerDuty, Slack, or custom scripts) detect an issue, AEGIS automatically:
+
+1. **Classifies** the incident by category (Access, Database, Network, Security, etc.)
+2. **Diagnoses** the root cause using a vector-based knowledge base
+3. **Resolves** L1/L2 incidents automatically with runbook scripts
+4. **Escalates** critical L3/L4 incidents to your senior engineers with full context
+
+Think of AEGIS as a **tireless L1 engineer** that works 24/7, resolves routine issues in seconds, and gives your team more time to focus on complex problems.
+
+### How it works
+
+```
+┌─────────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────────┐
+│  PagerDuty  │────▶│          │     │  L1/L2       │────▶│  Auto-resolve │
+│  Slack Bot  │────▶│  AEGIS   │────▶│  (routine)   │     │  + runbook    │
+│  API Call   │────▶│  Engine  │     │  L3/L4       │────▶│  Escalate to  │
+│  Webhook    │────▶│          │     │  (critical)  │     │  senior eng.  │
+└─────────────┘     └──────────┘     └──────────────┘     └──────────────┘
+```
+
+---
+
+## 2. Prerequisites
+
+Before integrating with AEGIS, ensure you have:
+
+| Requirement | Details |
+|-------------|---------|
+| **AEGIS tenant** | Your organization's account (see [Step 1](#3-step-1-initial-setup)) |
+| **API key** | A valid `aeg_live_*` key for authentication |
+| **Network access** | Ability to reach the AEGIS API endpoint (HTTPS) |
+| **Monitoring tools** | PagerDuty account (optional), Slack workspace (optional) |
+| **HTTP client** | `curl`, Postman, or any HTTP library for API calls |
+
+### Supported integrations
+
+| Integration | Status | Documentation |
+|-------------|--------|---------------|
+| REST API | ✅ Active | See [Step 2](#4-step-2-api-integration) |
+| PagerDuty Webhook | ✅ Active | See [Step 3](#5-step-3-pagerduty-integration) |
+| Slack Bot | ✅ Active | See [Step 4](#6-step-4-slack-integration) |
+| Email (SMTP) | 🔜 Coming soon | — |
+| ServiceNow | 🔜 Coming soon | — |
+| Jira | 🔜 Coming soon | — |
+
+---
+
+## 3. Step 1: Initial Setup
+
+### 3.1 Get your tenant
+
+Contact the AEGIS admin team to create your tenant. You will receive:
+
+- **Tenant ID** — a UUID that identifies your organization (e.g., `f01f8222-aa0a-4e7f-bda5-10582cbb2e50`)
+- **Tenant slug** — a human-readable identifier (e.g., `acme-corp`)
+- **Plan** — your subscription tier (`shield`, `guard`, or `fortress`)
+- **API key** — a secret key starting with `aeg_live_`
+
+> ⚠️ **Important:** Your API key is shown only once. Store it securely in a password manager or secrets vault. If you lose it, you'll need to generate a new one.
+
+### 3.2 Verify connectivity
+
+Once you have your API key, verify that you can reach the AEGIS API:
+
+```bash
+curl -s https://your-aegis-instance.com/v1/health \
+  -H "X-API-Key: aeg_live_your_key_here"
+```
+
+Expected response:
+
+```json
+{
+  "status": "healthy",
+  "tenant": "acme-corp",
+  "plan": "guard",
+  "classifier_tickets": 77,
+  "patterns_file": "found",
+  "llm_provider": "deepseek",
+  "version": "3.0.0",
+  "timestamp": "2026-06-25T22:00:00"
+}
+```
+
+### 3.3 Check your stats
+
+```bash
+curl -s https://your-aegis-instance.com/v1/stats \
+  -H "X-API-Key: aeg_live_your_key_here"
+```
+
+This returns your current usage, classifier status, and plan information.
+
+---
+
+## 4. Step 2: API Integration
+
+### 4.1 Sending an alert
+
+The primary endpoint for submitting incidents is `POST /v1/alert`.
+
+**Endpoint:** `POST https://your-aegis-instance.com/v1/alert`
+
+**Headers:**
+| Header | Value | Required |
+|--------|-------|----------|
+| `Content-Type` | `application/json` | ✅ |
+| `X-API-Key` | `aeg_live_your_key_here` | ✅ |
+
+**Request body:**
+
+```json
+{
+  "source": "pagerduty",
+  "severity": "low",
+  "title": "User cannot log in",
+  "description": "User gets 403 error when accessing the application",
+  "metadata": {
+    "user_id": "john.doe@acme.com",
+    "region": "us-east-1"
+  }
+}
+```
+
+**Example with curl:**
+
+```bash
+curl -s -X POST https://your-aegis-instance.com/v1/alert \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: aeg_live_your_key_here" \
+  -d '{
+    "source": "pagerduty",
+    "severity": "low",
+    "title": "User cannot log in",
+    "description": "User gets 403 error when accessing the application"
+  }'
+```
+
+### 4.2 Understanding the response
+
+```json
+{
+  "timestamp": "2026-06-25T22:00:00.000000",
+  "source": "pagerduty",
+  "severity": "low",
+  "level": "L1/L2",
+  "pattern_id": "L1-001",
+  "pattern_name": "Access / Authentication Issue",
+  "diagnosis": "User authentication or authorization failure detected. (classified via vector_weighted, confidence 53.2%)",
+  "script": "1. Verify user account is active\n2. Reset password if needed\n3. Check group/role assignments\n4. Clear browser cache and cookies",
+  "confidence": "53.2%",
+  "similar_tickets": [
+    {
+      "title": "Login failure after password reset",
+      "category": "ACCESS",
+      "resolution": "Reset password and clear browser cache"
+    }
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `level` | `L1/L2` (routine) or `L3/L4` (critical) |
+| `pattern_id` | The matched pattern identifier |
+| `pattern_name` | Human-readable pattern name |
+| `diagnosis` | Root cause analysis with confidence score |
+| `script` | Step-by-step resolution runbook |
+| `confidence` | Classification confidence (L1/L2 only) |
+| `similar_tickets` | Historical tickets with similar patterns |
+
+### 4.3 Severity routing
+
+AEGIS automatically routes incidents based on severity and keywords:
+
+| Severity | Route | Description |
+|----------|-------|-------------|
+| `low` | L1/L2 | Routine issues (password reset, access requests) |
+| `medium` | L1/L2 | Non-critical issues (slow performance, configuration) |
+| `high` | L3/L4 | Critical issues (service degradation) |
+| `critical` | L3/L4 | Emergency (outage, data loss, security breach) |
+
+If no severity is provided, AEGIS analyzes the description for critical keywords like `outage`, `down`, `failover`, `crash`, `500`, `503`, etc.
+
+### 4.4 L1/L2 response (routine)
+
+For routine incidents, AEGIS returns:
+- A **diagnosis** with the predicted category and confidence score
+- A **resolution script** with step-by-step instructions
+- **Similar tickets** from the knowledge base
+
+### 4.5 L3/L4 response (critical)
+
+For critical incidents, AEGIS returns:
+- A **diagnosis** generated by the LLM (DeepSeek or OpenAI)
+- A **resolution plan** with escalation steps
+- The incident is flagged for immediate human attention
+
+**Example critical alert:**
+
+```bash
+curl -s -X POST https://your-aegis-instance.com/v1/alert \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: aeg_live_your_key_here" \
+  -d '{
+    "source": "pagerduty",
+    "severity": "critical",
+    "title": "Database failover failure",
+    "description": "Primary database is down, failover to replica failed. Error 500 on all write operations."
+  }'
+```
+
+### 4.6 Error handling
+
+| Status Code | Meaning | What to do |
+|-------------|---------|------------|
+| `200` | Success | Process the diagnosis response |
+| `400` | Bad request | Check your payload structure |
+| `401` | Unauthorized | Verify your API key |
+| `422` | Validation error | Check required fields (title, description) |
+| `429` | Rate limit exceeded | Wait and retry (plan-dependent) |
+| `500` | Server error | Contact AEGIS support |
+
+### 4.7 Code examples
+
+**Python:**
+
+```python
+import requests
+
+API_URL = "https://your-aegis-instance.com"
+API_KEY = "aeg_live_your_key_here"
+
+alert = {
+    "source": "monitoring",
+    "severity": "low",
+    "title": "High CPU usage on web server",
+    "description": "CPU usage at 92% on web-01 for 5 minutes",
+}
+
+response = requests.post(
+    f"{API_URL}/v1/alert",
+    json=alert,
+    headers={"X-API-Key": API_KEY},
+)
+
+if response.status_code == 200:
+    result = response.json()
+    print(f"Level: {result['level']}")
+    print(f"Diagnosis: {result['diagnosis']}")
+    print(f"Resolution: {result['script']}")
+else:
+    print(f"Error: {response.status_code} - {response.text}")
+```
+
+**Node.js:**
+
+```javascript
+const API_URL = 'https://your-aegis-instance.com';
+const API_KEY = 'aeg_live_your_key_here';
+
+const alert = {
+  source: 'monitoring',
+  severity: 'low',
+  title: 'High CPU usage on web server',
+  description: 'CPU usage at 92% on web-01 for 5 minutes',
+};
+
+const response = await fetch(`${API_URL}/v1/alert`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': API_KEY,
+  },
+  body: JSON.stringify(alert),
+});
+
+const result = await response.json();
+console.log(`Level: ${result.level}`);
+console.log(`Diagnosis: ${result.diagnosis}`);
+```
+
+**Bash (script):**
+
+```bash
+#!/bin/bash
+# send_alert.sh — Send an alert to AEGIS
+
+API_URL="https://your-aegis-instance.com"
+API_KEY="aeg_live_your_key_here"
+
+curl -s -X POST "${API_URL}/v1/alert" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ${API_KEY}" \
+  -d '{
+    "source": "monitoring",
+    "severity": "low",
+    "title": "'"$1"'",
+    "description": "'"$2"'"
+  }' | jq .
+```
+
+Usage: `./send_alert.sh "High memory usage" "Memory at 95% on db-01"`
+
+---
+
+## 5. Step 3: PagerDuty Integration
+
+### 5.1 Configure the PagerDuty webhook
+
+1. Log in to your **PagerDuty** account
+2. Go to **Integrations → Generic Webhooks (v3)**
+3. Click **"Add Webhook"**
+4. Configure:
+
+| Field | Value |
+|-------|-------|
+| **Webhook URL** | `https://your-aegis-instance.com/v1/alert` |
+| **Secret** | Leave blank (AEGIS uses API key header) |
+| **Scope** | Select the services you want AEGIS to monitor |
+| **Events** | `incident.triggered` |
+
+5. Add a custom header:
+   - **Name:** `X-API-Key`
+   - **Value:** `aeg_live_your_key_here`
+
+6. Click **"Add Webhook"** to save
+
+### 5.2 How it works
+
+When PagerDuty triggers an incident:
+
+1. PagerDuty sends a webhook to AEGIS with the incident details
+2. AEGIS classifies the incident and runs a diagnosis
+3. For L1/L2 incidents, AEGIS returns a resolution script
+4. For L3/L4 incidents, AEGIS provides escalation context
+5. The response can be used to auto-resolve or update the PagerDuty incident
+
+### 5.3 Testing the integration
+
+Trigger a test alert from PagerDuty:
+
+```bash
+# Simulate a PagerDuty webhook
+curl -s -X POST https://your-aegis-instance.com/v1/alert \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: aeg_live_your_key_here" \
+  -d '{
+    "source": "pagerduty",
+    "severity": "low",
+    "title": "Test alert from PagerDuty",
+    "description": "This is a test incident for integration validation"
+  }'
+```
+
+---
+
+## 6. Step 4: Slack Integration
+
+### 6.1 Configure the Slack bot
+
+1. Go to your Slack **Apps** page
+2. Click **"Add Apps"** and search for your AEGIS bot
+3. Click **"Add to Slack"**
+4. The bot will join the configured channel (e.g., `#aegis-alerts`)
+
+### 6.2 Using the Slack bot
+
+Once the bot is in your channel, you can interact with it:
+
+**Send an alert via DM or channel:**
+
+```
+/aegis diagnose User cannot log in after password reset
+```
+
+**Check system status:**
+
+```
+/aegis status
+```
+
+**Get usage statistics:**
+
+```
+/aegis stats
+```
+
+### 6.3 Slack webhook integration
+
+You can also configure Slack to forward messages to AEGIS:
+
+1. In Slack, go to **Settings → Workflows**
+2. Create a new workflow triggered by **"When a message is posted in a channel"**
+3. Add a step: **"Send a webhook"**
+4. Set the webhook URL to `https://your-aegis-instance.com/v1/alert`
+5. Add header `X-API-Key: aeg_live_your_key_here`
+6. Map the message content to the `title` and `description` fields
+
+---
+
+## 7. Step 5: Dashboard & Monitoring
+
+### 7.1 Access the dashboard
+
+Open your browser and navigate to:
+
+```
+https://your-aegis-instance.com/dashboard
+```
+
+The dashboard shows:
+
+| Section | Description |
+|---------|-------------|
+| **Summary Cards** | Total diagnoses, monthly usage, tokens consumed, knowledge base size |
+| **System Health** | API status, classifier status, LLM provider, version |
+| **Category Distribution** | Bar chart of incidents by category |
+| **Recent Activity** | Table of recent diagnoses with timestamps, endpoints, and status |
+
+### 7.2 Metrics API
+
+For programmatic monitoring, use the `GET /metrics` endpoint:
+
+```bash
+curl -s https://your-aegis-instance.com/metrics \
+  -H "X-API-Key: aeg_live_your_key_here"
+```
+
+Response:
+
+```json
+{
+  "uptime_seconds": 86400,
+  "total_requests": 1523,
+  "total_errors": 12,
+  "endpoints": {
+    "GET /v1/health": {"count": 450, "errors": 0, "avg_latency_ms": 15.2},
+    "POST /v1/alert": {"count": 1023, "errors": 10, "avg_latency_ms": 850.0},
+    "GET /v1/stats": {"count": 50, "errors": 2, "avg_latency_ms": 20.1}
+  },
+  "classification": {
+    "total": 1023,
+    "categories": {
+      "ACCESS": 320,
+      "DATABASE": 210,
+      "NETWORK": 180,
+      "PERFORMANCE": 150,
+      "SECURITY": 100,
+      "API": 40,
+      "LICENSE": 23
+    }
+  },
+  "llm": {
+    "total_calls": 150,
+    "total_tokens": 45000,
+    "avg_latency_ms": 3200.0
+  },
+  "tenants": {
+    "acme-corp": {"requests": 1023, "errors": 10}
+  },
+  "timestamp": "2026-06-25T22:00:00"
+}
+```
+
+### 7.3 API documentation
+
+Interactive API documentation is available at:
+
+```
+https://your-aegis-instance.com/docs
+```
+
+This provides a Swagger UI where you can explore and test all endpoints.
+
+---
+
+## 8. Plans & Billing
+
+### Available plans
+
+| Feature | Shield | Guard | Fortress |
+|---------|--------|-------|----------|
+| **Monthly incidents** | 50 | Unlimited | Unlimited |
+| **L1/L2 auto-resolution** | ✅ | ✅ | ✅ |
+| **L3/L4 LLM diagnosis** | ✅ | ✅ | ✅ |
+| **PagerDuty integration** | ✅ | ✅ | ✅ |
+| **Slack integration** | ✅ | ✅ | ✅ |
+| **Dashboard** | ✅ | ✅ | ✅ |
+| **API access** | ✅ | ✅ | ✅ |
+| **Custom patterns** | ❌ | ❌ | ✅ |
+| **Dedicated support** | ❌ | ✅ | ✅ |
+| **SLA guarantee** | ❌ | ❌ | 99.9% |
+
+### Usage tracking
+
+You can check your current usage at any time:
+
+```bash
+curl -s https://your-aegis-instance.com/v1/stats \
+  -H "X-API-Key: aeg_live_your_key_here"
+```
+
+The response includes:
+- `total_incidents` — all-time incident count
+- `monthly_incidents` — incidents this billing period
+- `total_tokens_used` — LLM tokens consumed
+
+### Rate limits
+
+| Plan | Rate Limit |
+|------|------------|
+| Shield | 10 requests/minute |
+| Guard | 60 requests/minute |
+| Fortress | 300 requests/minute |
+
+---
+
+## 9. FAQ
+
+### General
+
+**Q: What happens if AEGIS can't classify an incident?**
+
+A: If the confidence score is below the threshold (45%), AEGIS marks the incident as "UNKNOWN" and routes it to a human agent with all available context.
+
+**Q: Does AEGIS modify my systems?**
+
+A: No. AEGIS is a read-only diagnostic system. It provides resolution scripts, but does not execute them automatically unless explicitly configured to do so.
+
+**Q: How is my data protected?**
+
+A: All API communications use HTTPS. API keys are stored as SHA-256 hashes. Each tenant's data is isolated in a multi-tenant architecture.
+
+**Q: Can I run AEGIS on-premises?**
+
+A: Yes. AEGIS can be deployed on your infrastructure using Docker. Contact support for on-premises deployment options.
+
+### Technical
+
+**Q: What is the maximum payload size?**
+
+A: The `title` field supports up to 500 characters, and `description` supports up to 10,000 characters.
+
+**Q: What happens if I send too many requests?**
+
+A: If you exceed your plan's rate limit, you'll receive a `429 Too Many Requests` response. Retry after the specified time.
+
+**Q: How long are diagnosis results stored?**
+
+A: Diagnosis results are stored for 90 days for Shield plans, and 365 days for Guard and Fortress plans.
+
+**Q: Can I integrate AEGIS with my own monitoring tool?**
+
+A: Yes. Any tool that can send HTTP requests can integrate with AEGIS via the REST API. See [Step 2](#4-step-2-api-integration) for details.
+
+### Troubleshooting
+
+**Q: I'm getting a 401 error. What should I do?**
+
+A: Verify that:
+1. Your API key starts with `aeg_live_`
+2. The key is correctly copied (no extra spaces)
+3. The key hasn't been revoked
+4. You're sending it in the `X-API-Key` header
+
+**Q: The diagnosis seems incorrect. How can I improve it?**
+
+A: Provide more context in the `title` and `description` fields. Include error messages, affected components, and any recent changes. The more detail you provide, the better the classification.
+
+**Q: How do I reset my API key?**
+
+A: Contact your AEGIS admin to generate a new key. The old key will be revoked immediately.
+
+---
+
+## 10. Support
+
+### Contact channels
+
+| Channel | Details |
+|---------|---------|
+| **Email** | support@aegis-itsm.com |
+| **Slack** | Join our community: aegis-itsm.slack.com |
+| **Documentation** | [docs.aegis-itsm.com](https://docs.aegis-itsm.com) |
+| **Status page** | [status.aegis-itsm.com](https://status.aegis-itsm.com) |
+
+### Response times
+
+| Plan | Response Time | Support Hours |
+|------|---------------|---------------|
+| Shield | 24 hours | Business hours (Mon-Fri) |
+| Guard | 4 hours | 24/7 |
+| Fortress | 1 hour | 24/7 with dedicated engineer |
+
+### Reporting issues
+
+When reporting an issue, please include:
+
+1. Your **tenant slug** (e.g., `acme-corp`)
+2. The **timestamp** of the incident
+3. The **request ID** from the error response (e.g., `b2c74afb-8ff6-47f2-b890-3444018ed24d`)
+4. The **full request and response** (with API key masked)
+
+---
+
+> 🛡️ **AEGIS** — Autonomous IT Incident Resolution · v3.0.0
+>
+> *"Your first line of defense, working 24/7."*
