@@ -6,7 +6,7 @@ Replaces the legacy integration_module.py endpoints with multi-tenant versions.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -17,8 +17,10 @@ from app.models import Tenant
 from app.services.classifier_service import classifier_service
 from app.services.orchestrator_service import orchestrator_service
 from app.services.billing_service import billing_service
+from app.logging_config import get_logger
 
 router = APIRouter(tags=["Alerts"])
+logger = get_logger(__name__)
 
 
 # ── Request / Response models ─────────────────────────────────
@@ -192,6 +194,7 @@ def handle_l3_l4(alert: AlertRequest) -> dict:
 @router.post("/v1/alert", response_model=DiagnosisResponse)
 def process_alert(
     alert: AlertRequest,
+    request: Request,
     tenant: Tenant = Depends(get_current_tenant),
     db: Session = Depends(get_db),
 ):
@@ -199,11 +202,22 @@ def process_alert(
     Main endpoint. Receives any alert or ticket and returns diagnosis + script.
     Requires X-API-Key header when AUTH_REQUIRED=true.
     """
+    request_id = getattr(request.state, "request_id", "unknown")
+
     # Check quota
     billing_service.check_quota(db, tenant)
 
     # Route to L1/L2 or L3/L4
     level = route_severity(alert.severity, alert.description)
+
+    logger.info("Processing alert", extra={
+        "request_id": request_id,
+        "tenant_id": tenant.id,
+        "level": level,
+        "severity": alert.severity,
+        "source": alert.source,
+        "title": alert.title[:80],
+    })
 
     if level == "L1/L2":
         result = handle_l1_l2(alert, tenant.id)
@@ -217,6 +231,14 @@ def process_alert(
         endpoint="/v1/alert",
         status_code=200,
     )
+
+    logger.info("Alert processed successfully", extra={
+        "request_id": request_id,
+        "tenant_id": tenant.id,
+        "level": level,
+        "pattern_id": result.get("pattern_id", "unknown"),
+        "confidence": result.get("confidence"),
+    })
 
     return DiagnosisResponse(
         timestamp=datetime.utcnow().isoformat(),

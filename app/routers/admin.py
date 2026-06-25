@@ -6,7 +6,7 @@ These are internal/admin endpoints (not exposed to end customers).
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -14,8 +14,10 @@ from app.database import get_db
 from app.dependencies import get_admin_tenant
 from app.models import Tenant, ApiKey
 from app.services.billing_service import billing_service
+from app.logging_config import get_logger
 
 router = APIRouter(prefix="/v1/admin", tags=["Admin"])
+logger = get_logger(__name__)
 
 
 # ── Request / Response models ─────────────────────────────────
@@ -57,13 +59,20 @@ class UsageResponse(BaseModel):
 @router.post("/tenants", response_model=CreateTenantResponse)
 def create_tenant(
     req: CreateTenantRequest,
+    request: Request,
     db: Session = Depends(get_db),
     _admin: Tenant = Depends(get_admin_tenant),
 ):
     """Create a new tenant and generate an API key."""
+    request_id = getattr(request.state, "request_id", "unknown")
+
     # Check if slug already exists
     existing = db.query(Tenant).filter(Tenant.slug == req.slug).first()
     if existing:
+        logger.warning("Tenant slug already exists", extra={
+            "request_id": request_id,
+            "slug": req.slug,
+        })
         raise HTTPException(status_code=409, detail=f"Tenant slug '{req.slug}' already exists")
 
     if req.plan not in ("shield", "guard", "fortress"):
@@ -97,6 +106,13 @@ def create_tenant(
     db.commit()
     db.refresh(tenant)
 
+    logger.info("Tenant created", extra={
+        "request_id": request_id,
+        "tenant_id": tenant.id,
+        "slug": tenant.slug,
+        "plan": tenant.plan,
+    })
+
     return CreateTenantResponse(
         tenant_id=tenant.id,
         name=tenant.name,
@@ -111,6 +127,7 @@ def create_api_key(
     tenant_id: str,
     name: str = "default",
     role: str = "api",
+    request: Request = None,
     db: Session = Depends(get_db),
     _admin: Tenant = Depends(get_admin_tenant),
 ):
@@ -121,6 +138,8 @@ def create_api_key(
         name: Human-readable name for the key.
         role: "api" for regular API access, "admin" for admin-level access.
     """
+    request_id = getattr(request.state, "request_id", "unknown") if request else "unknown"
+
     if role not in ("api", "admin"):
         raise HTTPException(
             status_code=400,
@@ -129,6 +148,10 @@ def create_api_key(
 
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
     if not tenant:
+        logger.warning("Tenant not found for API key creation", extra={
+            "request_id": request_id,
+            "tenant_id": tenant_id,
+        })
         raise HTTPException(status_code=404, detail="Tenant not found")
 
     full_key, key_hash = ApiKey.generate_key()
@@ -144,6 +167,13 @@ def create_api_key(
     db.add(api_key)
     db.commit()
     db.refresh(api_key)
+
+    logger.info("API key created", extra={
+        "request_id": request_id,
+        "tenant_id": tenant.id,
+        "prefix": api_key.prefix,
+        "role": role,
+    })
 
     return ApiKeyResponse(
         api_key_id=api_key.id,

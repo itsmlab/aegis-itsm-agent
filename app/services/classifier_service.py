@@ -23,6 +23,9 @@ from classifier import (
 sys.stdout = _old_stdout
 
 from app.config import settings
+from app.logging_config import get_logger, metrics_collector
+
+logger = get_logger(__name__)
 
 
 class ClassifierService:
@@ -37,12 +40,19 @@ class ClassifierService:
         self._collections: dict[str, object] = {}
         self._lock = Lock()
         self._dataset = self._load_dataset()
+        logger.info("Classifier service initialized", extra={
+            "total_tickets": len(self._dataset),
+            "categories": list(set(t["category"] for t in self._dataset)),
+            "model": settings.EMBEDDING_MODEL,
+        })
 
     def _load_dataset(self) -> list[dict]:
         """Load the ticket dataset (CSV or sample tickets)."""
         dataset = load_dataset_from_csv(settings.DATASET_PATH)
         if not dataset:
-            print("⚠️ Using built-in sample tickets (CSV not found)")
+            logger.warning("Dataset CSV not found, using built-in sample tickets", extra={
+                "path": settings.DATASET_PATH,
+            })
             dataset = SAMPLE_TICKETS
         return dataset
 
@@ -70,6 +80,11 @@ class ClassifierService:
             # Only load seed data if the collection is empty (newly created)
             if collection.count() == 0:
                 load_tickets_to_db(self._dataset, collection)
+                logger.info("Created new collection for tenant", extra={
+                    "tenant_id": tenant_id,
+                    "collection": collection_name,
+                    "tickets_loaded": len(self._dataset),
+                })
             self._collections[tenant_id] = collection
             return collection
 
@@ -80,8 +95,28 @@ class ClassifierService:
         Returns the same dict as classifier.classify_ticket():
           category, confidence, similar_tickets, method, suggested_resolution, etc.
         """
+        import time
+        start = time.time()
+
         collection = self._get_or_create_collection(tenant_id)
-        return classify_ticket(text, collection)
+        result = classify_ticket(text, collection)
+
+        latency = time.time() - start
+        category = result.get("category", "UNKNOWN")
+        confidence = result.get("confidence", 0.0)
+
+        # Record metrics
+        metrics_collector.record_classification(category=category, confidence=confidence)
+
+        logger.info("Ticket classified", extra={
+            "tenant_id": tenant_id,
+            "category": category,
+            "confidence": round(confidence, 4),
+            "method": result.get("method", "unknown"),
+            "latency_ms": round(latency * 1000, 2),
+        })
+
+        return result
 
     def get_stats(self, tenant_id: str) -> dict:
         """Get classifier statistics for the given tenant."""

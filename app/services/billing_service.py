@@ -10,6 +10,9 @@ from sqlalchemy import func
 
 from app.config import settings
 from app.models import Tenant, UsageRecord
+from app.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class BillingService:
@@ -42,6 +45,14 @@ class BillingService:
         db.add(record)
         db.commit()
 
+        logger.debug("Usage recorded", extra={
+            "tenant_id": tenant.id,
+            "tenant_slug": tenant.slug,
+            "endpoint": endpoint,
+            "tokens_used": tokens_used,
+            "status_code": status_code,
+        })
+
     def check_quota(self, db: Session, tenant: Tenant):
         """
         Check if the tenant has exceeded their monthly quota.
@@ -65,6 +76,13 @@ class BillingService:
         ).scalar() or 0
 
         if count >= max_incidents:
+            logger.warning("Monthly quota exceeded", extra={
+                "tenant_id": tenant.id,
+                "tenant_slug": tenant.slug,
+                "plan": tenant.plan,
+                "count": count,
+                "max": max_incidents,
+            })
             raise HTTPException(
                 status_code=429,
                 detail=(

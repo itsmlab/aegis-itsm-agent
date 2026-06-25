@@ -23,8 +23,10 @@ from app.models import Tenant, UsageRecord
 from app.services.classifier_service import classifier_service
 from app.services.orchestrator_service import orchestrator_service
 from app.services.billing_service import billing_service
+from app.logging_config import get_logger
 
 router = APIRouter(tags=["Dashboard"])
+logger = get_logger(__name__)
 
 # ── Templates ─────────────────────────────────────────────────
 
@@ -68,6 +70,8 @@ def dashboard(
       - Recent activity (last 20 requests)
       - Accuracy metrics (if available)
     """
+    request_id = getattr(request.state, "request_id", "unknown")
+
     # ── Usage stats ───────────────────────────────────────────
     usage = billing_service.get_usage(db, tenant.id)
 
@@ -92,8 +96,12 @@ def dashboard(
     # ── Classifier stats ──────────────────────────────────────
     try:
         classifier_stats = classifier_service.get_stats(tenant.id)
-    except Exception:
-        # Fallback if get_stats fails (e.g., collection not ready)
+    except Exception as e:
+        logger.warning("Failed to get classifier stats for dashboard", extra={
+            "request_id": request_id,
+            "tenant_id": tenant.id,
+            "error": str(e),
+        })
         classifier_stats = {"total": 0, "categories": {}}
 
     # ── Recent activity (last 20) ─────────────────────────────
@@ -116,6 +124,12 @@ def dashboard(
 
     # ── Accuracy metrics (optional) ───────────────────────────
     accuracy = load_accuracy_report()
+
+    logger.info("Dashboard rendered", extra={
+        "request_id": request_id,
+        "tenant_id": tenant.id,
+        "total_incidents": usage.get("total_incidents", 0),
+    })
 
     # ── Render template ───────────────────────────────────────
     return templates.TemplateResponse(
