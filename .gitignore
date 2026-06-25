@@ -23,6 +23,8 @@ build/
 chroma_db/
 tickets_db/
 chroma_data/
+patterns_db/
+
 
 # IDE
 .vscode/
