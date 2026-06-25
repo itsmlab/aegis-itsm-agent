@@ -6,18 +6,20 @@ Replaces the legacy integration_module.py endpoints with multi-tenant versions.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_tenant, UsageContext
+from app.dependencies import get_current_tenant, rate_limit_check, UsageContext
 from app.models import Tenant
 from app.services.classifier_service import classifier_service
 from app.services.orchestrator_service import orchestrator_service
 from app.services.billing_service import billing_service
+from app.services.rate_limit_service import rate_limit_service
 from app.logging_config import get_logger
+
 
 router = APIRouter(tags=["Alerts"])
 logger = get_logger(__name__)
@@ -195,6 +197,7 @@ def handle_l3_l4(alert: AlertRequest) -> dict:
 def process_alert(
     alert: AlertRequest,
     request: Request,
+    response: Response,
     tenant: Tenant = Depends(get_current_tenant),
     db: Session = Depends(get_db),
 ):
@@ -203,6 +206,23 @@ def process_alert(
     Requires X-API-Key header when AUTH_REQUIRED=true.
     """
     request_id = getattr(request.state, "request_id", "unknown")
+
+    # Check rate limit
+    allowed, rate_headers = rate_limit_service.check_rate_limit(tenant.id, tenant.plan)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "Too Many Requests",
+                "message": f"Rate limit exceeded. Limit: {rate_headers['X-RateLimit-Limit']} requests per hour.",
+                "rate_limit": rate_headers,
+            },
+            headers=rate_headers,
+        )
+
+    # Add rate limit headers to response
+    for key, value in rate_headers.items():
+        response.headers[key] = value
 
     # Check quota
     billing_service.check_quota(db, tenant)
@@ -249,9 +269,18 @@ def process_alert(
 
 
 @router.get("/v1/health")
-def health(tenant: Tenant = Depends(get_current_tenant)):
+def health(
+    response: Response,
+    tenant: Tenant = Depends(get_current_tenant),
+):
     """Health check endpoint."""
     patterns_ok = settings.PATTERNS_FILE.exists()
+
+    # Add rate limit headers
+    allowed, rate_headers = rate_limit_service.check_rate_limit(tenant.id, tenant.plan)
+    for key, value in rate_headers.items():
+        response.headers[key] = value
+
     return {
         "status": "healthy",
         "tenant": tenant.slug,
@@ -265,10 +294,20 @@ def health(tenant: Tenant = Depends(get_current_tenant)):
 
 
 @router.get("/v1/stats")
-def stats(tenant: Tenant = Depends(get_current_tenant), db: Session = Depends(get_db)):
+def stats(
+    response: Response,
+    tenant: Tenant = Depends(get_current_tenant),
+    db: Session = Depends(get_db),
+):
     """Get classifier and usage statistics for the current tenant."""
     classifier_stats = classifier_service.get_stats(tenant.id)
     usage_stats = billing_service.get_usage(db, tenant.id)
+
+    # Add rate limit headers
+    allowed, rate_headers = rate_limit_service.check_rate_limit(tenant.id, tenant.plan)
+    for key, value in rate_headers.items():
+        response.headers[key] = value
+
     return {
         "tenant": tenant.slug,
         "plan": tenant.plan,

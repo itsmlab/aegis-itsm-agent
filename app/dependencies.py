@@ -1,18 +1,21 @@
 """
-AEGIS SaaS — FastAPI dependencies for multi-tenant authentication.
+AEGIS SaaS — FastAPI dependencies for multi-tenant authentication and rate limiting.
 
 Provides:
   - get_current_tenant: extracts API key from X-API-Key header, resolves tenant
+  - get_admin_tenant: validates admin API key for admin endpoints
+  - rate_limit_check: checks per-tenant rate limits and adds X-RateLimit-* headers
   - get_llm: returns the configured LLMProvider singleton
 """
 
 import uuid
-from fastapi import Header, HTTPException, Depends
+from fastapi import Header, HTTPException, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
 from app.models import Tenant, ApiKey
+from app.services.rate_limit_service import rate_limit_service
 
 
 async def get_current_tenant(
@@ -170,6 +173,34 @@ async def get_admin_tenant(
     db.commit()
 
     return tenant
+
+
+async def rate_limit_check(
+    tenant: Tenant = Depends(get_current_tenant),
+) -> tuple[Tenant, dict]:
+    """
+    Dependency that checks per-tenant rate limits.
+
+    Must be used AFTER get_current_tenant (or get_admin_tenant).
+    Returns a tuple of (tenant, rate_limit_headers) so the endpoint
+    can add the headers to the response.
+
+    Raises 429 Too Many Requests if the rate limit is exceeded.
+    """
+    allowed, headers = rate_limit_service.check_rate_limit(tenant.id, tenant.plan)
+
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "Too Many Requests",
+                "message": f"Rate limit exceeded. Limit: {headers['X-RateLimit-Limit']} requests per hour. Try again after the reset time.",
+                "rate_limit": headers,
+            },
+            headers=headers,
+        )
+
+    return tenant, headers
 
 
 class UsageContext:
