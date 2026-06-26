@@ -98,6 +98,8 @@ DEEPSEEK_API_KEY=your-deepseek-api-key-here
 
 Get your API key at [platform.deepseek.com](https://platform.deepseek.com)
 
+> **Note:** If you don't have an API key, AEGIS still works for L1/L2 classification. L3/L4 diagnosis will return a clear message explaining how to configure it. See [Graceful Degradation](#graceful-degradation).
+
 ### 3. Run the server
 
 ```bash
@@ -226,6 +228,52 @@ Each pattern includes: symptoms, root cause diagnosis, and a production-ready re
 
 ---
 
+## Recent Improvements
+
+### RAG with Pattern Chunking
+
+The L3/L4 orchestrator now uses **Retrieval-Augmented Generation (RAG)** to select only the most relevant patterns from the knowledge base, instead of sending the full `AEGIS_PATTERNS.md` to the LLM on every request.
+
+- Each pattern is **chunked individually** and stored as a vector embedding in ChromaDB
+- On diagnosis, only the **top-3 most relevant chunks** are retrieved based on semantic similarity
+- This reduces **token usage by ~80%** and improves diagnosis speed
+- Falls back to the full knowledge base if RAG is not initialized
+
+Run the initialization script:
+```bash
+python scripts/init_knowledge_base.py
+```
+
+### Rate Limiting
+
+AEGIS enforces per-tenant rate limits based on plan:
+
+| Plan | Requests per hour |
+|------|-------------------|
+| Shield | 10 |
+| Guard | 50 |
+| Fortress | 200 |
+
+Rate limit information is returned in response headers:
+- `X-RateLimit-Limit` — Maximum requests per hour
+- `X-RateLimit-Remaining` — Requests remaining in the current window
+- `X-RateLimit-Reset` — Unix timestamp when the window resets
+
+When exceeded, the API returns **HTTP 429** with a clear error message.
+
+### Graceful Degradation
+
+If the LLM API key is not configured (e.g., `DEEPSEEK_API_KEY` is missing), AEGIS enters **degraded mode**:
+
+- **L1/L2 classification** continues to work normally (no LLM needed)
+- **L3/L4 diagnosis** returns **HTTP 503** with a clear message explaining how to configure the API key
+- The **health endpoint** (`GET /v1/health`) includes `llm_available: false` to signal the degraded state
+- The orchestrator logs a warning at startup: `"LLM provider not configured"`
+
+This allows you to evaluate the system, test L1/L2 classification, and explore the API without needing an LLM API key.
+
+---
+
 ## API Reference
 
 ### POST /v1/alert
@@ -274,7 +322,7 @@ Receives any alert or ticket and returns diagnosis + remediation script.
 
 ### GET /v1/health
 
-Returns system status — patterns file, classifier state, LLM provider, timestamp.
+Returns system status — patterns file, classifier state, LLM provider, LLM availability, timestamp.
 
 ### GET /v1/stats
 
@@ -314,15 +362,20 @@ aegis-itsm-agent/
 │   ├── services/                  # Business logic services
 │   │   ├── classifier_service.py  # Multi-tenant classifier
 │   │   ├── orchestrator_service.py# Multi-tenant orchestrator
-│   │   └── billing_service.py     # Usage tracking + quota enforcement
+│   │   ├── billing_service.py     # Usage tracking + quota enforcement
+│   │   └── rate_limit_service.py  # Per-tenant rate limiting
+│   ├── rag/                       # RAG knowledge base
+│   │   └── knowledge_base.py      # Pattern chunking + retrieval
 │   ├── templates/                 # HTML templates
 │   │   └── dashboard.html         # Web dashboard (dark mode)
 │   └── routers/                   # API endpoints
 │       ├── alerts.py              # POST /v1/alert, GET /v1/health, GET /v1/stats
 │       ├── admin.py               # POST /v1/admin/tenants, /api-keys
-│       └── dashboard.py           # GET /dashboard (web UI)
+│       ├── dashboard.py           # GET /dashboard (web UI)
+│       └── metrics.py             # GET /metrics (system metrics)
 │
 ├── scripts/                       # Utility scripts
+│   ├── init_knowledge_base.py     # Initialize RAG knowledge base
 │   ├── evaluate_real_data.py      # Cross-validation with real data
 │   └── import_real_data.py        # Import tickets from CSV to ChromaDB
 │
@@ -360,9 +413,12 @@ aegis-itsm-agent/
 | 1 — Core | Weeks 1–2 | Integration Module, end-to-end demo | ✅ Complete |
 | 2 — Beta | Weeks 3–6 | Slack bot, PagerDuty connector, 3 beta customers | ✅ Complete |
 | A — SaaS Base | Weeks 7–8 | Multi-tenant FastAPI, PostgreSQL, LLM abstraction, Docker, billing | ✅ Complete |
-| 3 — Agent | Weeks 9–12 | Script auto-execution, feedback loop | 📅 Planned |
-| 4 — Launch | Weeks 13–18 | Landing page, pricing live, 10 paying customers | 📅 Planned |
-| 5 — Scale | Month 6+ | Jira/Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
+| 1 — RAG Chunking | Week 9 | Pattern chunking, vector retrieval, reduced token usage | ✅ Complete |
+| 2 — Rate Limiting | Week 10 | Per-tenant rate limits, response headers, 429 handling | ✅ Complete |
+| 3 — Graceful Degradation | Week 11 | LLM-unavailable mode, 503 responses, health check indicators | ✅ Complete |
+| 4 — Agent | Weeks 12–15 | Script auto-execution, feedback loop | 📅 Planned |
+| 5 — Launch | Weeks 16–21 | Landing page, pricing live, 10 paying customers | 📅 Planned |
+| 6 — Scale | Month 6+ | Jira/Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
 
 ---
 

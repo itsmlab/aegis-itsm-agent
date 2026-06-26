@@ -533,11 +533,84 @@ The response includes:
 
 ### Rate limits
 
-| Plan | Rate Limit |
-|------|------------|
-| Shield | 10 requests/minute |
-| Guard | 60 requests/minute |
-| Fortress | 300 requests/minute |
+AEGIS enforces per-tenant rate limits using a sliding window algorithm. Limits are based on your plan:
+
+| Plan | Requests per hour | Window |
+|------|-------------------|--------|
+| Shield | 10 | 1 hour sliding |
+| Guard | 50 | 1 hour sliding |
+| Fortress | 200 | 1 hour sliding |
+
+**Response headers:**
+
+Every API response includes rate limit information in the response headers:
+
+| Header | Description | Example |
+|--------|-------------|---------|
+| `X-RateLimit-Limit` | Maximum requests per hour | `10` |
+| `X-RateLimit-Remaining` | Requests remaining in current window | `7` |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets | `1719360000` |
+
+**When you exceed the limit:**
+
+If you exceed your plan's rate limit, you'll receive a `429 Too Many Requests` response with additional information:
+
+```json
+{
+  "detail": "Rate limit exceeded. Try again in 3600 seconds."
+}
+```
+
+The response also includes a `Retry-After` header with the number of seconds to wait.
+
+**Best practices:**
+- Monitor the `X-RateLimit-Remaining` header to track your usage
+- Implement exponential backoff when receiving 429 responses
+- Upgrade your plan if you consistently hit the limit
+
+### Graceful degradation
+
+AEGIS is designed to work even when the LLM (AI) provider is not configured. This is called **graceful degradation**.
+
+**What happens if no API key is configured?**
+
+| Feature | Behavior |
+|---------|----------|
+| **L1/L2 classification** | ✅ Works normally (no LLM needed) |
+| **L3/L4 diagnosis** | ❌ Returns HTTP 503 with setup instructions |
+| **Health endpoint** | Shows `llm_available: false` |
+
+**L3/L4 degraded response example:**
+
+```json
+{
+  "error": "Service Unavailable",
+  "message": "LLM provider not configured. Please set DEEPSEEK_API_KEY in .env",
+  "level": "L3/L4",
+  "pattern_id": "LLM-UNAVAILABLE",
+  "pattern_name": "LLM Provider Not Configured",
+  "diagnosis": "LLM provider not configured. Please set DEEPSEEK_API_KEY in .env",
+  "script": "1. Open the .env file in the project root\n2. Add DEEPSEEK_API_KEY=your_api_key_here\n3. Restart the AEGIS service\n4. Verify with GET /v1/health",
+  "confidence": null
+}
+```
+
+**How to check LLM status:**
+
+```bash
+curl -s https://your-aegis-instance.com/v1/health \
+  -H "X-API-Key: aeg_live_your_key_here"
+```
+
+Look for these fields in the response:
+- `llm_provider`: `"deepseek"`, `"openai"`, or `"unconfigured"`
+- `llm_available`: `true` or `false`
+
+**To configure the LLM:**
+
+1. Set `DEEPSEEK_API_KEY` (or `OPENAI_API_KEY`) in your `.env` file
+2. Restart the AEGIS service
+3. Verify with `GET /v1/health` — `llm_available` should be `true`
 
 ---
 

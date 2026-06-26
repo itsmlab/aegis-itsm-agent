@@ -52,8 +52,8 @@ The architecture is built around three core principles:
 │  │                      │  │                          │   │
 │  │  77 historical tickets│  │  Technical alerts        │   │
 │  │         ↓            │  │         ↓                │   │
-│  │  SentenceTransformers │  │  AEGIS_PATTERNS.md       │   │
-│  │  + Keyword Fallback  │  │  (20 real postmortems)   │   │
+│  │  SentenceTransformers │  │  RAG Pattern Retrieval  │   │
+│  │  + Keyword Fallback  │  │  (top-3 chunks)          │   │
 │  │         ↓            │  │         ↓                │   │
 │  │  ChromaDB vector DB  │  │  DeepSeek LLM + RAG      │   │
 │  │  + weighted voting   │  │         ↓                │   │
@@ -72,12 +72,12 @@ The architecture is built around three core principles:
 │  Returns result to source system:                           │
 │  Slack message / PagerDuty note / Jira comment /           │
 │  ServiceNow incident update                                 │
-└─────────────────────────────────────────────────────────────┘
+└─────────────────────────┬───────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    SCRIPT EXECUTOR                          │
-│              (Phase 3 — with human approval)                │
+│              (Phase 4 — with human approval)                │
 │                                                             │
 │  Sandbox environment → Human approves → Execute → Verify   │
 └─────────────────────────────────────────────────────────────┘
@@ -119,11 +119,65 @@ RAG-based classifier that matches incoming tickets against historical resolution
 LLM + RAG engine that diagnoses critical incidents against real postmortem patterns.
 
 - **Input:** Alert text (metrics, logs, error messages)
-- **Process:** RAG over AEGIS_PATTERNS.md → DeepSeek LLM → structured JSON response
+- **Process:** RAG pattern retrieval → DeepSeek LLM → structured JSON response
 - **Output:** Pattern ID + root cause diagnosis + remediation script
 - **Model:** `deepseek-chat` via OpenAI-compatible API
 - **Temperature:** 0.1 (consistency over creativity for diagnosis)
 - **Response format:** JSON object (enforced via `response_format`)
+
+#### RAG with Pattern Chunking
+
+The orchestrator uses **Retrieval-Augmented Generation (RAG)** to reduce token usage and improve diagnosis speed:
+
+```
+Alert text
+    │
+    ▼
+[Embedding Model]  →  all-MiniLM-L6-v2 (384-dim vector)
+    │
+    ▼
+[ChromaDB Collection]  →  "patterns_chunks"
+    │  (20 chunks, one per pattern)
+    ▼
+[Top-3 most relevant chunks]  →  by cosine distance
+    │
+    ▼
+[LLM Prompt]  →  alert + 3 relevant patterns
+    │
+    ▼
+[Diagnosis + Script]
+```
+
+**Chunking strategy:**
+- Each pattern in `AEGIS_PATTERNS.md` is split into its own chunk using the `## Pattern AEGIS-XXX` header as delimiter
+- Chunks are embedded with `all-MiniLM-L6-v2` and stored in a dedicated ChromaDB collection (`patterns_chunks`)
+- On diagnosis, only the **top-3 most relevant chunks** are retrieved based on semantic similarity to the alert
+- This reduces token usage by **~80%** compared to sending the full knowledge base
+- Falls back to the full knowledge base if RAG is not initialized
+
+**Initialization:**
+```bash
+python scripts/init_knowledge_base.py
+```
+
+#### Graceful Degradation
+
+If the LLM API key is not configured, the orchestrator enters **degraded mode**:
+
+- Detected at startup via `_check_api_key()` in `OrchestratorService`
+- The `is_degraded` property signals the state to the API layer
+- `diagnose()` returns a clear diagnostic message instead of raising an exception
+- `get_provider_name()` returns `"unconfigured"` instead of crashing
+- The health endpoint exposes `llm_available: false`
+
+**Behavior by component:**
+
+| Component | Normal Mode | Degraded Mode |
+|-----------|-------------|---------------|
+| L1/L2 Classifier | Works normally | Works normally (no LLM needed) |
+| L3/L4 Orchestrator | LLM diagnosis | Returns 503 with setup instructions |
+| Health endpoint | `llm_available: true` | `llm_available: false` |
+| Logging | Normal operation | Warning at startup + per-request |
 
 ### 4. Knowledge Base
 20 real incident patterns extracted from public postmortems.
@@ -151,7 +205,48 @@ LLM + RAG engine that diagnoses critical incidents against real postmortem patte
 | AEGIS-019 | AKS node pool / control plane failure | Azure AKS 2024 |
 | AEGIS-020 | SQL connection pool exhaustion | Azure SQL 2025 |
 
-### 5. Script Executor (Phase 3)
+### 5. Rate Limiting
+
+AEGIS enforces per-tenant rate limits using an in-memory sliding window algorithm.
+
+**Architecture:**
+
+```
+Request arrives
+    │
+    ▼
+[RateLimitService.check_rate_limit(tenant_id, plan)]
+    │
+    ├── Cleanup expired timestamps (> 1 hour old)
+    ├── Count requests in current window
+    ├── If count >= limit → return False + 429 headers
+    └── If count < limit → record timestamp → return True + headers
+```
+
+**Rate limits by plan:**
+
+| Plan | Requests per hour | Window |
+|------|-------------------|--------|
+| Shield | 10 | 1 hour sliding |
+| Guard | 50 | 1 hour sliding |
+| Fortress | 200 | 1 hour sliding |
+
+**Response headers:**
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests per hour |
+| `X-RateLimit-Remaining` | Requests remaining in current window |
+| `X-RateLimit-Reset` | Unix timestamp when the window resets |
+| `Retry-After` | Seconds to wait (only on 429 responses) |
+
+**Implementation details:**
+- Thread-safe: uses a `threading.Lock` to protect the counters dictionary
+- In-memory: counters are not persisted across restarts
+- Auto-cleanup: expired timestamps are removed on each check
+- Singleton: `rate_limit_service` is shared across all endpoints
+
+### 6. Script Executor (Phase 4)
 Sandboxed execution environment with human approval flow.
 
 - Receives script from Orchestrator
@@ -169,8 +264,11 @@ Sandboxed execution environment with human approval flow.
 | L1/L2 Classification | Ticket Classifier | ChromaDB + SentenceTransformers + Keyword Fallback | ✅ Operational |
 | L3/L4 Diagnosis | Incident Orchestrator | DeepSeek API + RAG | ✅ Operational |
 | Knowledge | Pattern Knowledge Base | 20 real incident patterns in markdown | ✅ 20 patterns |
-| Execution | Script Executor | Sandbox + approval flow | 🔜 Phase 3 |
-| Infrastructure | Hosting | Railway / Fly.io | 🔜 Phase 4 |
+| RAG Retrieval | Pattern Chunking | ChromaDB + SentenceTransformers | ✅ Operational |
+| Rate Limiting | Per-tenant sliding window | In-memory + threading.Lock | ✅ Operational |
+| Graceful Degradation | LLM-unavailable mode | OrchestratorService degraded state | ✅ Operational |
+| Execution | Script Executor | Sandbox + approval flow | 🔜 Phase 4 |
+| Infrastructure | Hosting | Railway / Fly.io | 🔜 Phase 5 |
 
 ---
 
@@ -207,6 +305,14 @@ aegis-itsm-agent/
 ├── requirements.txt          # Python dependencies
 ├── .env                      # API keys (not in repo)
 ├── .gitignore                # Excludes venv, .env, tickets_db
+├── app/                      # SaaS multi-tenant backend
+│   ├── services/
+│   │   ├── rate_limit_service.py  # Per-tenant rate limiting
+│   │   └── orchestrator_service.py# Graceful degradation support
+│   └── rag/
+│       └── knowledge_base.py      # Pattern chunking + retrieval
+├── scripts/
+│   └── init_knowledge_base.py     # RAG knowledge base initialization
 ├── docs/                     # Business documentation
 │   ├── AEGIS_Business_Document.docx
 │   ├── AEGIS_Executive_Summary.docx
@@ -222,10 +328,14 @@ aegis-itsm-agent/
 | Phase | Timeline | Focus | Status |
 |-------|---------|-------|--------|
 | 1 — Patterns | Completed | 20 incident patterns, hybrid classifier, orchestrator, v2 integration | ✅ Done |
-| 2 — Beta | Weeks 3–6 | Slack bot, PagerDuty, 3 beta customers | 🔜 Next |
-| 3 — Agent | Weeks 9–12 | Script auto-execution sandbox, feedback loop | 📅 Planned |
-| 4 — Launch | Weeks 13–18 | Landing page, pricing live, 10 paying customers | 📅 Planned |
-| 5 — Scale | Month 6+ | Jira, Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
+| 2 — Beta | Weeks 3–6 | Slack bot, PagerDuty, 3 beta customers | ✅ Done |
+| A — SaaS Base | Weeks 7–8 | Multi-tenant FastAPI, PostgreSQL, LLM abstraction, Docker, billing | ✅ Done |
+| 1 — RAG Chunking | Week 9 | Pattern chunking, vector retrieval, reduced token usage | ✅ Done |
+| 2 — Rate Limiting | Week 10 | Per-tenant rate limits, response headers, 429 handling | ✅ Done |
+| 3 — Graceful Degradation | Week 11 | LLM-unavailable mode, 503 responses, health check indicators | ✅ Done |
+| 4 — Agent | Weeks 12–15 | Script auto-execution sandbox, feedback loop | 📅 Planned |
+| 5 — Launch | Weeks 16–21 | Landing page, pricing live, 10 paying customers | 📅 Planned |
+| 6 — Scale | Month 6+ | Jira, Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
 
 ---
 
@@ -235,6 +345,7 @@ aegis-itsm-agent/
 |-|-------------|-------------|----------------|
 | **Price** | $499/month | $1,499/month | Custom |
 | **Incidents** | Up to 50/month | Unlimited | Unlimited |
+| **Rate limit** | 10 req/hour | 50 req/hour | 200 req/hour |
 | **Integration** | Webhook + Slack | + PagerDuty + Datadog | + ServiceNow + Jira |
 | **Execution** | Manual approval | Sandbox auto-exec | Full autonomous |
 
