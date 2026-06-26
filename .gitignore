@@ -43,9 +43,8 @@ Desktop.ini
 *.log
 logs/
 
-# Alembic
-alembic/versions/
-
+# Alembic (migration files are versioned)
+# alembic/versions/  # Uncomment to ignore migration files locally
 # Docker
 .docker/
 docker-compose.override.yml
