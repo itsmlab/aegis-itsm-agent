@@ -26,16 +26,56 @@ class OrchestratorService:
     the knowledge base, reducing token usage and improving diagnosis speed.
 
     Falls back to the full knowledge base if RAG is not initialized.
+
+    Supports graceful degradation: if the LLM API key is not configured,
+    the service enters a 'degraded' state and returns a clear message
+    instead of raising an exception.
     """
+
+    DEGRADED_DIAGNOSIS = {
+        "id": "LLM-UNAVAILABLE",
+        "name": "LLM Provider Not Configured",
+        "diagnosis": "LLM provider not configured. Please set DEEPSEEK_API_KEY in .env",
+        "script": "1. Open the .env file in the project root\n2. Add DEEPSEEK_API_KEY=your_api_key_here\n3. Restart the AEGIS service\n4. Verify with GET /v1/health",
+    }
 
     def __init__(self):
         self._patterns_kb: str | None = None
         self._llm_provider: LLMProvider | None = None
         self._rag_available: bool | None = None
+        self._degraded: bool = False
+
+        # Check if LLM API key is configured
+        self._check_api_key()
+
         logger.info("Orchestrator service initialized", extra={
             "llm_provider": settings.LLM_PROVIDER,
             "patterns_file": str(settings.PATTERNS_FILE),
+            "degraded": self._degraded,
         })
+
+    def _check_api_key(self) -> None:
+        """Check if the configured LLM provider has its API key set."""
+        provider = settings.LLM_PROVIDER.lower()
+        if provider == "deepseek" and not settings.DEEPSEEK_API_KEY:
+            self._degraded = True
+            logger.warning("LLM provider not configured", extra={
+                "provider": provider,
+                "reason": "DEEPSEEK_API_KEY is not set in .env",
+            })
+        elif provider == "openai" and not settings.OPENAI_API_KEY:
+            self._degraded = True
+            logger.warning("LLM provider not configured", extra={
+                "provider": provider,
+                "reason": "OPENAI_API_KEY is not set in .env",
+            })
+        else:
+            self._degraded = False
+
+    @property
+    def is_degraded(self) -> bool:
+        """Whether the service is running in degraded mode (no LLM API key)."""
+        return self._degraded
 
     def _check_rag_available(self) -> bool:
         """Check if the RAG knowledge base is initialized."""
@@ -135,9 +175,19 @@ class OrchestratorService:
         Uses RAG to select only the most relevant patterns, reducing
         token usage and improving diagnosis speed.
 
+        If the LLM API key is not configured (degraded mode), returns
+        a clear diagnostic message instead of raising an exception.
+
         Returns dict with keys: id, name, diagnosis, script.
         """
         start = time.time()
+
+        # Graceful degradation: no API key configured
+        if self._degraded:
+            logger.info("Diagnosis skipped — LLM provider not configured", extra={
+                "input_length": len(alert_text),
+            })
+            return dict(self.DEGRADED_DIAGNOSIS)
 
         # Retrieve relevant patterns (RAG) or full KB as fallback
         patterns_kb = self._retrieve_relevant_patterns(alert_text)
@@ -170,7 +220,14 @@ class OrchestratorService:
         return self._patterns_kb.count("## Pattern AEGIS-")
 
     def get_provider_name(self) -> str:
-        """Get the name of the configured LLM provider."""
+        """
+        Get the name of the configured LLM provider.
+
+        Returns 'unconfigured' if the service is in degraded mode
+        (no API key set), so this method never raises.
+        """
+        if self._degraded:
+            return "unconfigured"
         return self._get_llm().get_provider_name()
 
 

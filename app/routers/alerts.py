@@ -190,6 +190,21 @@ def handle_l3_l4(alert: AlertRequest) -> dict:
     }
 
 
+def handle_l3_l4_degraded(alert: AlertRequest) -> dict:
+    """Handle critical incidents when LLM is not configured (degraded mode)."""
+    input_text = f"{alert.title} {alert.description}" if alert.title else alert.description
+    result = orchestrator_service.diagnose(input_text)
+
+    return {
+        "level": "L3/L4",
+        "pattern_id": str(result.get("id", "LLM-UNAVAILABLE")),
+        "pattern_name": str(result.get("name", "LLM Provider Not Configured")),
+        "diagnosis": str(result.get("diagnosis", "")),
+        "script": str(result.get("script", "")),
+        "confidence": None,
+    }
+
+
 # ── Endpoints ─────────────────────────────────────────────────
 
 
@@ -242,6 +257,23 @@ def process_alert(
     if level == "L1/L2":
         result = handle_l1_l2(alert, tenant.id)
     else:
+        # Check if LLM is available (graceful degradation)
+        if orchestrator_service.is_degraded:
+            result = handle_l3_l4_degraded(alert)
+            logger.warning("Alert processed in degraded mode — LLM not configured", extra={
+                "request_id": request_id,
+                "tenant_id": tenant.id,
+                "level": level,
+            })
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "Service Unavailable",
+                    "message": "LLM provider not configured. Please set DEEPSEEK_API_KEY in .env",
+                    "level": level,
+                    **result,
+                },
+            )
         result = handle_l3_l4(alert)
 
     # Record usage
@@ -281,13 +313,17 @@ def health(
     for key, value in rate_headers.items():
         response.headers[key] = value
 
+    llm_provider = orchestrator_service.get_provider_name()
+    llm_available = not orchestrator_service.is_degraded
+
     return {
         "status": "healthy",
         "tenant": tenant.slug,
         "plan": tenant.plan,
         "classifier_tickets": classifier_service.get_global_stats()["total_tickets"],
         "patterns_file": "found" if patterns_ok else "missing",
-        "llm_provider": orchestrator_service.get_provider_name(),
+        "llm_provider": llm_provider,
+        "llm_available": llm_available,
         "version": settings.APP_VERSION,
         "timestamp": datetime.utcnow().isoformat(),
     }
