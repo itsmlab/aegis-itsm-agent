@@ -32,12 +32,65 @@ The architecture is built around three core principles:
 
 ---
 
+## Deployment Models
+
+AEGIS supports two deployment models:
+
+### On-Premise (Docker)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Client (Browser/API)                  │
+└─────────────────────┬───────────────────────────────────┘
+                      │ HTTPS (optional with Caddy)
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│  ┌──────────┐    ┌──────────┐    ┌──────────────────┐  │
+│  │  Caddy   │───▶│  AEGIS   │───▶│   PostgreSQL     │  │
+│  │ (proxy)  │    │   App    │    │   (datos)        │  │
+│  └──────────┘    └────┬─────┘    └──────────────────┘  │
+│                       │                                 │
+│              ┌────────┴────────┐                       │
+│              ▼                  ▼                       │
+│     ┌──────────────┐  ┌──────────────────┐             │
+│     │   ChromaDB   │  │   LLM Provider   │             │
+│     │   (RAG/KB)   │  │                  │             │
+│     └──────────────┘  ├──────────────────┤             │
+│                       │  Ollama (local)  │             │
+│                       │  ─ o ─           │             │
+│                       │  DeepSeek API    │             │
+│                       │  ─ o ─           │             │
+│                       │  OpenAI API      │             │
+│                       │  ─ o ─           │             │
+│                       │  Anthropic API   │             │
+│                       └──────────────────┘             │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Deployment via:**
+- `install.sh` (Linux/macOS) — one-command automated installer
+- `install.ps1` (Windows) — one-command automated installer
+- `docker-compose.yml` with profiles for Ollama and Caddy
+
+### SaaS (Multi-Tenant Cloud)
+
+```
+┌─────────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────────┐
+│  PagerDuty  │────▶│          │     │  L1/L2       │────▶│  Auto-resolve │
+│  Slack Bot  │────▶│  AEGIS   │────▶│  (routine)   │     │  + runbook    │
+│  API Call   │────▶│  Engine  │     │  L3/L4       │────▶│  Escalate to  │
+│  Webhook    │────▶│          │     │  (critical)  │     │  senior eng.  │
+└─────────────┘     └──────────┘     └──────────────┘     └──────────────┘
+```
+
+---
+
 ## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    INTEGRATION MODULE v2                     │
-│         (Universal adapter — ChromaDB + DeepSeek)          │
+│         (Universal adapter — ChromaDB + LLM Provider)      │
 │                                                             │
 │  Webhook  │  Slack  │  PagerDuty  │  Jira  │  ServiceNow  │
 └─────────────────────────┬───────────────────────────────────┘
@@ -55,11 +108,11 @@ The architecture is built around three core principles:
 │  │  SentenceTransformers │  │  RAG Pattern Retrieval  │   │
 │  │  + Keyword Fallback  │  │  (top-3 chunks)          │   │
 │  │         ↓            │  │         ↓                │   │
-│  │  ChromaDB vector DB  │  │  DeepSeek LLM + RAG      │   │
-│  │  + weighted voting   │  │         ↓                │   │
-│  │         ↓            │  │  Diagnosis + script      │   │
-│  │  Category + fix      │  │                          │   │
-│  │  + confidence score  │  │                          │   │
+│  │  ChromaDB vector DB  │  │  LLM Provider + RAG      │   │
+│  │  + weighted voting   │  │  (Ollama / DeepSeek /    │   │
+│  │         ↓            │  │   OpenAI / Anthropic)    │   │
+│  │  Category + fix      │  │         ↓                │   │
+│  │  + confidence score  │  │  Diagnosis + script      │   │
 │  │  + suggested resol.  │  │                          │   │
 │  └──────────────────────┘  └──────────────────────────┘   │
 │                                                             │
@@ -77,7 +130,7 @@ The architecture is built around three core principles:
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    SCRIPT EXECUTOR                          │
-│              (Phase 4 — with human approval)                │
+│              (Phase 5 — with human approval)                │
 │                                                             │
 │  Sandbox environment → Human approves → Execute → Verify   │
 └─────────────────────────────────────────────────────────────┘
@@ -119,11 +172,40 @@ RAG-based classifier that matches incoming tickets against historical resolution
 LLM + RAG engine that diagnoses critical incidents against real postmortem patterns.
 
 - **Input:** Alert text (metrics, logs, error messages)
-- **Process:** RAG pattern retrieval → DeepSeek LLM → structured JSON response
+- **Process:** RAG pattern retrieval → LLM Provider → structured JSON response
 - **Output:** Pattern ID + root cause diagnosis + remediation script
-- **Model:** `deepseek-chat` via OpenAI-compatible API
+- **LLM Provider:** Configurable via `LLM_PROVIDER` in `.env` (ollama, deepseek, openai, anthropic)
 - **Temperature:** 0.1 (consistency over creativity for diagnosis)
-- **Response format:** JSON object (enforced via `response_format`)
+- **Response format:** JSON object (enforced via `response_format` where supported)
+
+#### LLM Provider Abstraction
+
+The `app/llm/` layer provides a pluggable provider system:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    LLM Provider Factory                   │
+│                    (app/llm/factory.py)                   │
+│                                                          │
+│  LLM_PROVIDER=ollama    →  OllamaProvider                │
+│  LLM_PROVIDER=deepseek  →  DeepSeekProvider              │
+│  LLM_PROVIDER=openai    →  OpenAIProvider                │
+│  LLM_PROVIDER=anthropic →  AnthropicProvider             │
+└─────────────────────────────────────────────────────────┘
+```
+
+All providers implement the `LLMProvider` interface (`app/llm/base.py`):
+- `diagnose(alert_text, patterns)` → `DiagnosisResult`
+- `get_provider_name()` → `str`
+
+**Provider-specific features:**
+
+| Provider | JSON Mode | API Key Required | SDK |
+|----------|-----------|------------------|-----|
+| Ollama | Auto-detected per model | No | OpenAI-compatible |
+| DeepSeek | ✅ Yes | Yes | OpenAI-compatible |
+| OpenAI | ✅ Yes | Yes | OpenAI SDK |
+| Anthropic | ✅ Yes | Yes | Anthropic SDK |
 
 #### RAG with Pattern Chunking
 
@@ -162,11 +244,11 @@ python scripts/init_knowledge_base.py
 
 #### Graceful Degradation
 
-If the LLM API key is not configured, the orchestrator enters **degraded mode**:
+If the LLM is not configured or unavailable, the orchestrator enters **degraded mode**:
 
 - Detected at startup via `_check_api_key()` in `OrchestratorService`
 - The `is_degraded` property signals the state to the API layer
-- `diagnose()` returns a clear diagnostic message instead of raising an exception
+- `diagnose()` returns a provider-specific diagnostic message instead of raising an exception
 - `get_provider_name()` returns `"unconfigured"` instead of crashing
 - The health endpoint exposes `llm_available: false`
 
@@ -175,9 +257,15 @@ If the LLM API key is not configured, the orchestrator enters **degraded mode**:
 | Component | Normal Mode | Degraded Mode |
 |-----------|-------------|---------------|
 | L1/L2 Classifier | Works normally | Works normally (no LLM needed) |
-| L3/L4 Orchestrator | LLM diagnosis | Returns 503 with setup instructions |
+| L3/L4 Orchestrator | LLM diagnosis | Returns 503 with provider-specific setup instructions |
 | Health endpoint | `llm_available: true` | `llm_available: false` |
 | Logging | Normal operation | Warning at startup + per-request |
+
+**Degraded mode messages are dynamic per provider:**
+- `deepseek` → "Please set DEEPSEEK_API_KEY in your .env file"
+- `openai` → "Please set OPENAI_API_KEY in your .env file"
+- `anthropic` → "Please set ANTHROPIC_API_KEY in your .env file"
+- `ollama` → "Ollama is not running or not reachable"
 
 ### 4. Knowledge Base
 20 real incident patterns extracted from public postmortems.
@@ -246,7 +334,7 @@ Request arrives
 - Auto-cleanup: expired timestamps are removed on each check
 - Singleton: `rate_limit_service` is shared across all endpoints
 
-### 6. Script Executor (Phase 4)
+### 6. Script Executor (Phase 5)
 Sandboxed execution environment with human approval flow.
 
 - Receives script from Orchestrator
@@ -262,13 +350,16 @@ Sandboxed execution environment with human approval flow.
 |-------|-----------|-----------|--------|
 | Integration | Integration Module v2 | FastAPI + webhooks + ChromaDB | ✅ Operational |
 | L1/L2 Classification | Ticket Classifier | ChromaDB + SentenceTransformers + Keyword Fallback | ✅ Operational |
-| L3/L4 Diagnosis | Incident Orchestrator | DeepSeek API + RAG | ✅ Operational |
+| L3/L4 Diagnosis | Incident Orchestrator | LLM Provider (Ollama / DeepSeek / OpenAI / Anthropic) + RAG | ✅ Operational |
+| LLM Abstraction | Provider Factory | `app/llm/` — pluggable providers | ✅ 4 providers |
 | Knowledge | Pattern Knowledge Base | 20 real incident patterns in markdown | ✅ 20 patterns |
 | RAG Retrieval | Pattern Chunking | ChromaDB + SentenceTransformers | ✅ Operational |
 | Rate Limiting | Per-tenant sliding window | In-memory + threading.Lock | ✅ Operational |
 | Graceful Degradation | LLM-unavailable mode | OrchestratorService degraded state | ✅ Operational |
-| Execution | Script Executor | Sandbox + approval flow | 🔜 Phase 4 |
-| Infrastructure | Hosting | Railway / Fly.io | 🔜 Phase 5 |
+| On-Premise Install | Installer scripts | `install.sh` (Linux/macOS), `install.ps1` (Windows) | ✅ v3.1.0 |
+| HTTPS Proxy | Caddy | Automatic Let's Encrypt, Docker profile | ✅ v3.1.0 |
+| Execution | Script Executor | Sandbox + approval flow | 🔜 Phase 5 |
+| Infrastructure | Hosting | Railway / Fly.io | 🔜 Phase 6 |
 
 ---
 
@@ -294,10 +385,12 @@ AEGIS improves for next similar incident
 aegis-itsm-agent/
 ├── README.md                 # Project overview and quick start
 ├── ARCHITECTURE.md           # This file
+├── INSTALL.md                # On-premise installation guide
 ├── AEGIS_PATTERNS.md         # 20 incident patterns (L3-L4 knowledge base)
 ├── classifier.py             # L1-L2 hybrid classifier (vector + keyword fallback)
 ├── integration_module.py     # API webhook v2.0 (ChromaDB + DeepSeek)
 ├── orchestrator.py           # L3-L4 incident diagnostician
+├── slack_bot.py              # Slack bot (Socket Mode)
 ├── tickets_dataset.csv       # 77 IT support tickets in 8 categories
 ├── test_classifier.py        # Accuracy tests (22 tickets)
 ├── test_integration.py       # Import verification for integration module
@@ -305,14 +398,42 @@ aegis-itsm-agent/
 ├── requirements.txt          # Python dependencies
 ├── .env                      # API keys (not in repo)
 ├── .gitignore                # Excludes venv, .env, tickets_db
+├── Dockerfile                # Multi-stage Docker build
+├── docker-compose.yml        # app + PostgreSQL + ChromaDB + Ollama (profile) + Caddy (profile)
+├── Caddyfile                 # HTTPS reverse proxy config
+├── install.sh                # One-command installer (Linux/macOS)
+├── install.ps1               # One-command installer (Windows)
 ├── app/                      # SaaS multi-tenant backend
+│   ├── config.py             # Centralized settings (pydantic-settings)
+│   ├── database.py           # PostgreSQL + SQLite fallback
+│   ├── models.py             # Tenant, ApiKey, UsageRecord
+│   ├── dependencies.py       # Auth middleware (X-API-Key)
+│   ├── main.py               # FastAPI entry point
+│   ├── llm/                  # LLM provider abstraction
+│   │   ├── base.py           # Abstract LLMProvider interface
+│   │   ├── deepseek.py       # DeepSeek implementation
+│   │   ├── openai_compat.py  # OpenAI-compatible (OpenAI, Ollama)
+│   │   ├── ollama.py         # Ollama dedicated provider
+│   │   ├── anthropic.py      # Anthropic/Claude provider
+│   │   └── factory.py        # Provider factory
 │   ├── services/
-│   │   ├── rate_limit_service.py  # Per-tenant rate limiting
-│   │   └── orchestrator_service.py# Graceful degradation support
-│   └── rag/
-│       └── knowledge_base.py      # Pattern chunking + retrieval
+│   │   ├── classifier_service.py   # Multi-tenant classifier
+│   │   ├── orchestrator_service.py # Orchestrator with graceful degradation
+│   │   ├── billing_service.py      # Usage tracking + quota enforcement
+│   │   └── rate_limit_service.py   # Per-tenant rate limiting
+│   ├── rag/
+│   │   └── knowledge_base.py       # Pattern chunking + retrieval
+│   ├── templates/
+│   │   └── dashboard.html          # Web dashboard (dark mode)
+│   └── routers/
+│       ├── alerts.py         # POST /v1/alert, GET /v1/health, GET /v1/stats
+│       ├── admin.py          # POST /v1/admin/tenants, /api-keys
+│       ├── dashboard.py      # GET /dashboard (web UI)
+│       └── metrics.py        # GET /metrics (system metrics)
 ├── scripts/
-│   └── init_knowledge_base.py     # RAG knowledge base initialization
+│   ├── init_knowledge_base.py      # RAG knowledge base initialization
+│   ├── evaluate_real_data.py       # Cross-validation with real data
+│   └── import_real_data.py         # Import tickets from CSV to ChromaDB
 ├── docs/                     # Business documentation
 │   ├── AEGIS_Business_Document.docx
 │   ├── AEGIS_Executive_Summary.docx
@@ -333,9 +454,10 @@ aegis-itsm-agent/
 | 1 — RAG Chunking | Week 9 | Pattern chunking, vector retrieval, reduced token usage | ✅ Done |
 | 2 — Rate Limiting | Week 10 | Per-tenant rate limits, response headers, 429 handling | ✅ Done |
 | 3 — Graceful Degradation | Week 11 | LLM-unavailable mode, 503 responses, health check indicators | ✅ Done |
-| 4 — Agent | Weeks 12–15 | Script auto-execution sandbox, feedback loop | 📅 Planned |
-| 5 — Launch | Weeks 16–21 | Landing page, pricing live, 10 paying customers | 📅 Planned |
-| 6 — Scale | Month 6+ | Jira, Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
+| 4 — On-Premise | Week 12 | Multi-provider LLM, install scripts, HTTPS, installation guide | ✅ Done |
+| 5 — Agent | Weeks 13–16 | Script auto-execution sandbox, feedback loop | 📅 Planned |
+| 6 — Launch | Weeks 17–22 | Landing page, pricing live, 10 paying customers | 📅 Planned |
+| 7 — Scale | Month 6+ | Jira, Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
 
 ---
 
@@ -351,4 +473,4 @@ aegis-itsm-agent/
 
 ---
 
-*Last updated: June 2026 — AEGIS v3.1*
+*Last updated: July 2026 — AEGIS v3.1 (On-Premise Ready)*

@@ -346,9 +346,11 @@ Each term has a card with three parts:
 
 **What is it?** A platform for running applications in "containers". A container is like a lightweight virtual machine that includes everything needed for the application to run.
 
-**What is it used for in AEGIS?** The `docker-compose.yml` starts three containers: the AEGIS app, PostgreSQL, and ChromaDB. With a single command (`docker-compose up`) you have the entire system running.
+**What is it used for in AEGIS?** The `docker-compose.yml` starts the core services: AEGIS app, PostgreSQL, and ChromaDB. With optional profiles for Ollama (local LLM) and Caddy (HTTPS proxy). AEGIS provides one-command installers:
+- `install.sh` (Linux/macOS) — Automated installation with prerequisite checks
+- `install.ps1` (Windows) — Automated installation with prerequisite checks
 
-**🔍 Found in:** `Dockerfile`, `docker-compose.yml`
+**🔍 Found in:** `Dockerfile`, `docker-compose.yml`, `install.sh`, `install.ps1`, `Caddyfile`
 
 ---
 
@@ -464,16 +466,28 @@ Imagine AEGIS is a **hospital specialized in IT incidents**. Each area of the ho
 **What does it do?** This is where the "medications" (language models) are stored. Depending on what the hospital has configured, it uses one or another.
 
 - **DeepSeek** — The default medication (economical and effective)
-- **OpenAI** — Alternative (GPT-4o-mini, etc.)
-- **Ollama** — For running models locally (Llama 3, etc.)
+- **OpenAI** — Alternative (GPT-4o-mini, GPT-4o, etc.)
+- **Ollama** — For running models locally (Llama 3, Mistral, Phi-3, etc.)
+- **Anthropic** — Claude models (Opus, Sonnet, Haiku)
 
-All medications come in the same format (OpenAI-compatible), so switching them is as simple as changing a variable in `.env`.
+All medications follow the same interface (`LLMProvider`), so switching them is as simple as changing a variable in `.env`. The **factory** (`app/llm/factory.py`) is the "pharmacist" that selects the correct medication based on `LLM_PROVIDER`.
 
 **Key files:**
 - `app/llm/base.py` — The "prescription" (interface) that all medications must follow
 - `app/llm/deepseek.py` — Implementation for DeepSeek
-- `app/llm/openai_compat.py` — Implementation for OpenAI and Ollama
+- `app/llm/openai_compat.py` — Implementation for OpenAI
+- `app/llm/ollama.py` — Dedicated provider for Ollama (local models)
+- `app/llm/anthropic.py` — Implementation for Anthropic/Claude (official SDK)
 - `app/llm/factory.py` — The "pharmacist" that selects the correct medication
+
+**Provider-specific features:**
+
+| Provider | JSON Mode | API Key Required | SDK |
+|----------|-----------|------------------|-----|
+| Ollama | Auto-detected per model | No | OpenAI-compatible |
+| DeepSeek | ✅ Yes | Yes | OpenAI-compatible |
+| OpenAI | ✅ Yes | Yes | OpenAI SDK |
+| Anthropic | ✅ Yes | Yes | Anthropic SDK |
 
 **To explore more:** Look at `factory.py` to understand how the provider is selected based on `LLM_PROVIDER`.
 
@@ -970,8 +984,24 @@ python cross_validation.py
 ### 🐳 To use Docker
 
 ```bash
-# Starts everything: app + PostgreSQL + ChromaDB
-docker-compose up
+# One-command install (Linux/macOS) — checks prerequisites, creates .env, starts services
+curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+
+# One-command install (Windows PowerShell)
+.\install.ps1
+
+# Or manually with Docker Compose:
+# Core services only (app + PostgreSQL + ChromaDB)
+docker compose --env-file .env up -d
+
+# With Ollama (local LLM)
+docker compose --profile ollama --env-file .env up -d
+
+# With HTTPS (requires domain)
+docker compose --profile caddy --env-file .env up -d
+
+# Everything
+docker compose --profile ollama --profile caddy --env-file .env up -d
 ```
 
 ---

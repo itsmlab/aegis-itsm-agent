@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     CLASSIFIER_CONFIDENCE_THRESHOLD: float = 0.45
 
     # -- LLM Provider ------------------------------------------------
-    # Options: "deepseek", "openai", "ollama"
+    # Options: "deepseek", "openai", "ollama", "anthropic"
     LLM_PROVIDER: str = "deepseek"
     DEEPSEEK_API_KEY: Optional[str] = None
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
@@ -36,7 +36,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3"
+    ANTHROPIC_API_KEY: Optional[str] = None
+    ANTHROPIC_MODEL: str = "claude-sonnet-4-20250514"
     LLM_TEMPERATURE: float = 0.1
+
 
     # -- PostgreSQL (multi-tenant operational data) ------------------
     DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/aegis"

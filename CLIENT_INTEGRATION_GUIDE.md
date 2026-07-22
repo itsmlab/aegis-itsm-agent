@@ -1,6 +1,6 @@
 # AEGIS — Client Integration Guide
 
-> **Version 3.0.0** · *Autonomous IT Incident Resolution*
+> **Version 3.1.0** · *Autonomous IT Incident Resolution*
 
 ---
 
@@ -577,20 +577,35 @@ AEGIS is designed to work even when the LLM (AI) provider is not configured. Thi
 | Feature | Behavior |
 |---------|----------|
 | **L1/L2 classification** | ✅ Works normally (no LLM needed) |
-| **L3/L4 diagnosis** | ❌ Returns HTTP 503 with setup instructions |
+| **L3/L4 diagnosis** | ❌ Returns degraded response with setup instructions |
 | **Health endpoint** | Shows `llm_available: false` |
 
-**L3/L4 degraded response example:**
+**L3/L4 degraded response example (DeepSeek):**
 
 ```json
 {
   "error": "Service Unavailable",
-  "message": "LLM provider not configured. Please set DEEPSEEK_API_KEY in .env",
+  "message": "LLM provider 'deepseek' not configured. Please set DEEPSEEK_API_KEY in your .env file.",
   "level": "L3/L4",
   "pattern_id": "LLM-UNAVAILABLE",
   "pattern_name": "LLM Provider Not Configured",
-  "diagnosis": "LLM provider not configured. Please set DEEPSEEK_API_KEY in .env",
-  "script": "1. Open the .env file in the project root\n2. Add DEEPSEEK_API_KEY=your_api_key_here\n3. Restart the AEGIS service\n4. Verify with GET /v1/health",
+  "diagnosis": "LLM provider 'deepseek' not configured. Please set DEEPSEEK_API_KEY in your .env file.",
+  "script": "1. Open the .env file in the project root\n2. Add DEEPSEEK_API_KEY=your_deepseek_api_key_here\n3. Restart the AEGIS service\n4. Verify with GET /v1/health",
+  "confidence": null
+}
+```
+
+**L3/L4 degraded response example (Ollama):**
+
+```json
+{
+  "error": "Service Unavailable",
+  "message": "Ollama is not running or not reachable. Please ensure Ollama is installed and running.",
+  "level": "L3/L4",
+  "pattern_id": "LLM-UNAVAILABLE",
+  "pattern_name": "Ollama Not Reachable",
+  "diagnosis": "Ollama is not running or not reachable. Please ensure Ollama is installed and running.",
+  "script": "1. Install Ollama from https://ollama.com\n2. Run: ollama pull llama3\n3. Run: ollama serve\n4. Verify: curl http://localhost:11434/api/tags\n5. Restart the AEGIS service",
   "confidence": null
 }
 ```
@@ -603,18 +618,21 @@ curl -s https://your-aegis-instance.com/v1/health \
 ```
 
 Look for these fields in the response:
-- `llm_provider`: `"deepseek"`, `"openai"`, or `"unconfigured"`
+- `llm_provider`: `"deepseek"`, `"openai"`, `"ollama"`, or `"unconfigured"`
 - `llm_available`: `true` or `false`
 
 **To configure the LLM:**
 
-1. Set `DEEPSEEK_API_KEY` (or `OPENAI_API_KEY`) in your `.env` file
-2. Restart the AEGIS service
-3. Verify with `GET /v1/health` — `llm_available` should be `true`
+1. Set `LLM_PROVIDER=deepseek` (or `openai` or `ollama`) in your `.env` file
+2. Set the corresponding API key (`DEEPSEEK_API_KEY` or `OPENAI_API_KEY`) if using external API
+3. For Ollama, ensure the Ollama service is running
+4. Restart the AEGIS service
+5. Verify with `GET /v1/health` — `llm_available` should be `true`
 
 ---
 
 ## 9. FAQ
+
 
 ### General
 
@@ -632,7 +650,22 @@ A: All API communications use HTTPS. API keys are stored as SHA-256 hashes. Each
 
 **Q: Can I run AEGIS on-premises?**
 
-A: Yes. AEGIS can be deployed on your infrastructure using Docker. Contact support for on-premises deployment options.
+A: Yes. AEGIS is designed for on-premise deployment. You can install it on your own infrastructure using Docker with a single command:
+
+```bash
+# Linux/macOS
+curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+
+# Windows (PowerShell)
+.\install.ps1
+```
+
+See the [Installation Guide](./INSTALL.md) for complete instructions, including:
+- Hardware requirements (RAM, disk, GPU)
+- LLM provider configuration (Ollama local or external API)
+- Docker Compose profiles for Ollama and HTTPS
+- Troubleshooting common issues
+- Architecture diagram
 
 ### Technical
 
@@ -702,6 +735,6 @@ When reporting an issue, please include:
 
 ---
 
-> 🛡️ **AEGIS** — Autonomous IT Incident Resolution · v3.0.0
+> 🛡️ **AEGIS** — Autonomous IT Incident Resolution · v3.1.0
 >
 > *"Your first line of defense, working 24/7."*

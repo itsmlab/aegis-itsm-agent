@@ -32,13 +32,6 @@ class OrchestratorService:
     instead of raising an exception.
     """
 
-    DEGRADED_DIAGNOSIS = {
-        "id": "LLM-UNAVAILABLE",
-        "name": "LLM Provider Not Configured",
-        "diagnosis": "LLM provider not configured. Please set DEEPSEEK_API_KEY in .env",
-        "script": "1. Open the .env file in the project root\n2. Add DEEPSEEK_API_KEY=your_api_key_here\n3. Restart the AEGIS service\n4. Verify with GET /v1/health",
-    }
-
     def __init__(self):
         self._patterns_kb: str | None = None
         self._llm_provider: LLMProvider | None = None
@@ -69,6 +62,28 @@ class OrchestratorService:
                 "provider": provider,
                 "reason": "OPENAI_API_KEY is not set in .env",
             })
+        elif provider == "anthropic" and not settings.ANTHROPIC_API_KEY:
+            self._degraded = True
+            logger.warning("LLM provider not configured", extra={
+                "provider": provider,
+                "reason": "ANTHROPIC_API_KEY is not set in .env",
+            })
+        elif provider == "ollama":
+
+            # Ollama doesn't need an API key, but we check if it's reachable
+            # by attempting to initialize the provider
+            try:
+                from app.llm.ollama import OllamaProvider
+                test_provider = OllamaProvider()
+                # Try a lightweight check
+                test_provider.get_provider_name()
+                self._degraded = False
+            except Exception as e:
+                self._degraded = True
+                logger.warning("Ollama not reachable", extra={
+                    "provider": provider,
+                    "reason": str(e),
+                })
         else:
             self._degraded = False
 
@@ -76,6 +91,51 @@ class OrchestratorService:
     def is_degraded(self) -> bool:
         """Whether the service is running in degraded mode (no LLM API key)."""
         return self._degraded
+
+    def _build_degraded_diagnosis(self) -> dict:
+        """Build a degraded diagnosis message tailored to the configured provider."""
+        provider = settings.LLM_PROVIDER.lower()
+
+        if provider == "deepseek":
+            env_var = "DEEPSEEK_API_KEY"
+            example = "your-deepseek-api-key-here"
+        elif provider == "openai":
+            env_var = "OPENAI_API_KEY"
+            example = "sk-your-openai-api-key"
+        elif provider == "ollama":
+            return {
+                "id": "LLM-UNAVAILABLE",
+                "name": "Ollama Not Reachable",
+                "diagnosis": (
+                    "Ollama is not running or not reachable. "
+                    "Please ensure Ollama is installed and running."
+                ),
+                "script": (
+                    "1. Install Ollama from https://ollama.com\n"
+                    "2. Run: ollama pull llama3\n"
+                    "3. Run: ollama serve\n"
+                    "4. Verify: curl http://localhost:11434/api/tags\n"
+                    "5. Restart the AEGIS service"
+                ),
+            }
+        else:
+            env_var = f"{provider.upper()}_API_KEY"
+            example = f"your-{provider}-api-key"
+
+        return {
+            "id": "LLM-UNAVAILABLE",
+            "name": "LLM Provider Not Configured",
+            "diagnosis": (
+                f"LLM provider '{provider}' not configured. "
+                f"Please set {env_var} in your .env file."
+            ),
+            "script": (
+                f"1. Open the .env file in the project root\n"
+                f"2. Add {env_var}={example}\n"
+                f"3. Restart the AEGIS service\n"
+                f"4. Verify with GET /v1/health"
+            ),
+        }
 
     def _check_rag_available(self) -> bool:
         """Check if the RAG knowledge base is initialized."""
@@ -187,7 +247,7 @@ class OrchestratorService:
             logger.info("Diagnosis skipped — LLM provider not configured", extra={
                 "input_length": len(alert_text),
             })
-            return dict(self.DEGRADED_DIAGNOSIS)
+            return dict(self._build_degraded_diagnosis())
 
         # Retrieve relevant patterns (RAG) or full KB as fallback
         patterns_kb = self._retrieve_relevant_patterns(alert_text)

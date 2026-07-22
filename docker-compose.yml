@@ -1,6 +1,17 @@
 # ── AEGIS SaaS — Docker Compose ──────────────────────────────
-# Spins up: app, PostgreSQL, ChromaDB server
+# Spins up: app, PostgreSQL, ChromaDB, optional Ollama, optional Caddy
 # Usage: docker-compose up --build
+#
+# Profiles:
+#   (default)   → app + postgres + chromadb
+#   ollama      → adds local Ollama service
+#   caddy       → adds HTTPS reverse proxy (Caddy)
+#
+# Examples:
+#   docker-compose up --build                              # core only
+#   docker-compose --profile ollama up --build             # core + Ollama
+#   docker-compose --profile caddy up --build              # core + HTTPS
+#   docker-compose --profile ollama --profile caddy up     # all services
 
 version: "3.9"
 
@@ -21,6 +32,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   # ── ChromaDB Server ─────────────────────────────────────────
   chromadb:
@@ -33,6 +45,7 @@ services:
       IS_PERSISTENT: "TRUE"
       PERSIST_DIRECTORY: /chroma/chroma
       ANONYMIZED_TELEMETRY: "FALSE"
+    restart: unless-stopped
 
   # ── AEGIS App ───────────────────────────────────────────────
   app:
@@ -45,8 +58,12 @@ services:
       CHROMA_PORT: 8000
       CHROMA_USE_SERVER: "true"
       DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
       LLM_PROVIDER: "${LLM_PROVIDER:-deepseek}"
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://ollama:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3}"
       AUTH_REQUIRED: "${AUTH_REQUIRED:-false}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,8 +71,55 @@ services:
         condition: service_started
     volumes:
       - tickets_db_data:/app/tickets_db
+      - ./AEGIS_PATTERNS.md:/app/AEGIS_PATTERNS.md:ro
+    restart: unless-stopped
+
+  # ── Ollama (local LLM) ──────────────────────────────────────
+  # Enable with: --profile ollama
+  ollama:
+    profiles:
+      - ollama
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: "24h"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # ── Caddy (HTTPS reverse proxy) ─────────────────────────────
+  # Enable with: --profile caddy
+  # Set CADDY_DOMAIN env var to your domain (e.g., aegis.example.com)
+  caddy:
+    profiles:
+      - caddy
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    environment:
+      CADDY_DOMAIN: "${CADDY_DOMAIN:-localhost}"
+      AEGIS_UPSTREAM: "app:8000"
+    depends_on:
+      - app
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   chromadb_data:
   tickets_db_data:
+  ollama_data:
+  caddy_data:
+  caddy_config:

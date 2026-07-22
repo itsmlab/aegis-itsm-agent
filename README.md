@@ -6,8 +6,8 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-operational-green?logo=fastapi&logoColor=white)
 ![LangChain](https://img.shields.io/badge/LangChain-RAG-green?logo=chainlink&logoColor=white)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorDB-orange)
-![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-purple)
-![Status](https://img.shields.io/badge/Status-Phase%20A%20Complete-brightgreen)
+![LLM](https://img.shields.io/badge/LLM-Multi--Provider-purple)
+![Status](https://img.shields.io/badge/Status-v3.1.0--On--Premise-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
@@ -32,6 +32,26 @@ AEGIS is a full-spectrum autonomous AI agent that resolves IT incidents across a
 3. **Diagnoses** L3/L4 root causes in **< 15 seconds** using RAG over 20 real incident patterns
 4. **Delivers** a production-ready remediation script — human approves or auto-executes
 
+### Deployment Options
+
+AEGIS supports **two deployment models**:
+
+| Option | Description | Best for |
+|--------|-------------|----------|
+| **🏠 On-Premise** | Install in your own infrastructure via Docker | Privacy, air-gapped environments, data sovereignty |
+| **☁️ SaaS** | Multi-tenant cloud service with billing | Teams that want a managed solution |
+
+### LLM Provider Options
+
+AEGIS is **LLM-agnostic** — you choose the AI model:
+
+| Provider | Type | Setup |
+|----------|------|-------|
+| **Ollama** (local) | Runs on your hardware | No API key needed, just Docker |
+| **DeepSeek** | External API | `DEEPSEEK_API_KEY` in `.env` |
+| **OpenAI** (GPT-4o, GPT-4o-mini) | External API | `OPENAI_API_KEY` in `.env` |
+| **Anthropic** (Claude) | External API | `ANTHROPIC_API_KEY` in `.env` |
+
 ---
 
 ## How It Works
@@ -47,8 +67,9 @@ Alert / Ticket
  ▼         ▼
 Classifier  Orchestrator
 (L1/L2)    (L3/L4)
-ChromaDB   DeepSeek API
-+ RAG      + RAG
+ChromaDB   LLM Provider
++ RAG      (Ollama / DeepSeek /
+            OpenAI / Anthropic)
  │         │
  └────┬────┘
       │
@@ -75,7 +96,27 @@ Slack / PagerDuty / Jira / ServiceNow
 
 ## Quick Start
 
-### 1. Clone and install
+### Option A: On-Premise Installation (recommended)
+
+```bash
+# One-command install — Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+
+# One-command install — Windows (PowerShell)
+# Download install.ps1 and run:
+.\install.ps1
+```
+
+The installer will:
+1. ✅ Check prerequisites (Docker, RAM, disk space)
+2. ✅ Create `.env` with your chosen LLM provider
+3. ✅ Start all services (app, PostgreSQL, ChromaDB)
+4. ✅ Initialize the RAG knowledge base
+5. ✅ Verify everything is running
+
+> 📖 See [`INSTALL.md`](./INSTALL.md) for the complete installation guide.
+
+### Option B: Manual Setup (for development)
 
 ```bash
 git clone https://github.com/laral5173/aegis-itsm-agent.git
@@ -88,19 +129,28 @@ venv\Scripts\activate        # Windows
 pip install -r requirements.txt
 ```
 
-### 2. Configure API key
+### Configure LLM Provider
 
 Create a `.env` file in the root:
 
+```bash
+# For local model (Ollama) — no API key needed
+LLM_PROVIDER=ollama
+
+# For external API — choose one:
+# LLM_PROVIDER=deepseek
+# DEEPSEEK_API_KEY=your-deepseek-api-key-here
+#
+# LLM_PROVIDER=openai
+# OPENAI_API_KEY=sk-your-openai-api-key
+#
+# LLM_PROVIDER=anthropic
+# ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key
 ```
-DEEPSEEK_API_KEY=your-deepseek-api-key-here
-```
 
-Get your API key at [platform.deepseek.com](https://platform.deepseek.com)
+> **Note:** If you don't configure an LLM, AEGIS still works for L1/L2 classification. L3/L4 diagnosis will return a clear message explaining how to configure it. See [Graceful Degradation](#graceful-degradation).
 
-> **Note:** If you don't have an API key, AEGIS still works for L1/L2 classification. L3/L4 diagnosis will return a clear message explaining how to configure it. See [Graceful Degradation](#graceful-degradation).
-
-### 3. Run the server
+### Run the server
 
 ```bash
 python app/main.py
@@ -114,7 +164,7 @@ uvicorn app.main:app --reload
 
 Open **http://localhost:8000/docs** for the interactive API documentation.
 
-### 4. Send an alert
+### Send an alert
 
 ```bash
 curl -X POST http://localhost:8000/v1/alert \
@@ -127,7 +177,7 @@ curl -X POST http://localhost:8000/v1/alert \
   }'
 ```
 
-### 5. Run individual components (CLI mode)
+### Run individual components (CLI mode)
 
 ```bash
 # L3/L4 incident diagnostician
@@ -154,9 +204,10 @@ python cross_validation.py
 |-------|-----------|-----------|--------|
 | Integration | Integration Module v2 | FastAPI + webhooks + ChromaDB | ✅ Operational |
 | L1/L2 Classification | Ticket Classifier | ChromaDB + SentenceTransformers + Keyword Fallback | ✅ Operational |
-| L3/L4 Diagnosis | Incident Orchestrator | DeepSeek API + RAG | ✅ Operational |
+| L3/L4 Diagnosis | Incident Orchestrator | LLM Provider (Ollama / DeepSeek / OpenAI / Anthropic) + RAG | ✅ Operational |
+| LLM Abstraction | Provider Factory | `app/llm/` — pluggable providers | ✅ 4 providers |
 | Knowledge | Pattern Knowledge Base | 20 real incident patterns in markdown | ✅ 20 patterns |
-| Execution | Script Executor | Sandbox + approval flow | 🔜 Phase 3 |
+| Execution | Script Executor | Sandbox + approval flow | 🔜 Phase 4 |
 
 ### L1/L2 Classifier Details
 
@@ -230,6 +281,15 @@ Each pattern includes: symptoms, root cause diagnosis, and a production-ready re
 
 ## Recent Improvements
 
+### v3.1.0 — On-Premise Ready (July 2026)
+
+- **Multi-provider LLM abstraction** — Ollama, DeepSeek, OpenAI, Anthropic via pluggable factory
+- **One-command installer** — `install.sh` (Linux/macOS) and `install.ps1` (Windows)
+- **Docker Compose profiles** — Optional Ollama and Caddy (HTTPS) services
+- **Dynamic degraded mode** — Provider-specific messages when LLM is unavailable
+- **Installation guide** — [`INSTALL.md`](./INSTALL.md) with architecture diagram, requirements, troubleshooting
+- **Anthropic/Claude support** — New provider using official SDK
+
 ### RAG with Pattern Chunking
 
 The L3/L4 orchestrator now uses **Retrieval-Augmented Generation (RAG)** to select only the most relevant patterns from the knowledge base, instead of sending the full `AEGIS_PATTERNS.md` to the LLM on every request.
@@ -263,10 +323,10 @@ When exceeded, the API returns **HTTP 429** with a clear error message.
 
 ### Graceful Degradation
 
-If the LLM API key is not configured (e.g., `DEEPSEEK_API_KEY` is missing), AEGIS enters **degraded mode**:
+If the LLM is not configured or unavailable, AEGIS enters **degraded mode**:
 
 - **L1/L2 classification** continues to work normally (no LLM needed)
-- **L3/L4 diagnosis** returns **HTTP 503** with a clear message explaining how to configure the API key
+- **L3/L4 diagnosis** returns **HTTP 503** with a provider-specific message explaining how to configure it
 - The **health endpoint** (`GET /v1/health`) includes `llm_available: false` to signal the degraded state
 - The orchestrator logs a warning at startup: `"LLM provider not configured"`
 
@@ -336,9 +396,9 @@ Returns classifier and usage statistics.
 |-------|-----------|-----|
 | Integration | FastAPI + Uvicorn | Universal webhook — any system can send alerts via HTTP POST |
 | L1/L2 Classification | ChromaDB + SentenceTransformers | Hybrid vector + keyword classifier with 77 tickets |
-| L3/L4 Diagnosis | DeepSeek API + RAG | Cost-effective, high-quality diagnosis ($0.14/1M tokens) |
+| L3/L4 Diagnosis | LLM Provider + RAG | Pluggable: Ollama, DeepSeek, OpenAI, Anthropic |
 | Vector DB | ChromaDB (local) | Semantic search over incident patterns |
-| LLM | DeepSeek API | Cost-effective, high-quality diagnosis ($0.14/1M tokens) |
+| LLM | Multiple providers | Choose local (Ollama) or external API (DeepSeek/OpenAI/Anthropic) |
 | Runtime | Python 3.11+ | Fast prototyping, rich ML ecosystem |
 
 ---
@@ -358,6 +418,8 @@ aegis-itsm-agent/
 │   │   ├── base.py                # Abstract LLMProvider interface
 │   │   ├── deepseek.py            # DeepSeek implementation
 │   │   ├── openai_compat.py       # OpenAI-compatible (OpenAI, Ollama)
+│   │   ├── ollama.py              # Ollama dedicated provider
+│   │   ├── anthropic.py           # Anthropic/Claude provider
 │   │   └── factory.py             # Provider factory
 │   ├── services/                  # Business logic services
 │   │   ├── classifier_service.py  # Multi-tenant classifier
@@ -381,7 +443,10 @@ aegis-itsm-agent/
 │
 ├── alembic/                       # Database migrations
 ├── Dockerfile                     # Multi-stage Docker build
-├── docker-compose.yml             # app + PostgreSQL + ChromaDB
+├── docker-compose.yml             # app + PostgreSQL + ChromaDB + Ollama (profile) + Caddy (profile)
+├── Caddyfile                      # HTTPS reverse proxy config
+├── install.sh                     # One-command installer (Linux/macOS)
+├── install.ps1                    # One-command installer (Windows)
 │
 ├── classifier.py              # L1/L2 hybrid classifier (vector + keyword fallback)
 ├── integration_module.py      # API webhook v2.0 (ChromaDB + DeepSeek + PagerDuty)
@@ -393,6 +458,8 @@ aegis-itsm-agent/
 ├── test_integration.py        # Import verification for integration module
 ├── AEGIS_PATTERNS.md          # 20 real incident patterns (L3/L4 knowledge base)
 ├── ARCHITECTURE.md            # Technical architecture and design decisions
+├── INSTALL.md                 # On-premise installation guide
+├── CLIENT_INTEGRATION_GUIDE.md# Client integration guide
 ├── CONTRIBUTING.md            # Guide for contributors
 ├── CODE_OF_CONDUCT.md         # Community guidelines
 ├── CONSULTING_PROJECT.md      # Consulting proposal / case study
@@ -416,9 +483,10 @@ aegis-itsm-agent/
 | 1 — RAG Chunking | Week 9 | Pattern chunking, vector retrieval, reduced token usage | ✅ Complete |
 | 2 — Rate Limiting | Week 10 | Per-tenant rate limits, response headers, 429 handling | ✅ Complete |
 | 3 — Graceful Degradation | Week 11 | LLM-unavailable mode, 503 responses, health check indicators | ✅ Complete |
-| 4 — Agent | Weeks 12–15 | Script auto-execution, feedback loop | 📅 Planned |
-| 5 — Launch | Weeks 16–21 | Landing page, pricing live, 10 paying customers | 📅 Planned |
-| 6 — Scale | Month 6+ | Jira/Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
+| 4 — On-Premise | Week 12 | Multi-provider LLM, install scripts, HTTPS, installation guide | ✅ Complete |
+| 5 — Agent | Weeks 13–16 | Script auto-execution, feedback loop | 📅 Planned |
+| 6 — Launch | Weeks 17–22 | Landing page, pricing live, 10 paying customers | 📅 Planned |
+| 7 — Scale | Month 6+ | Jira/Opsgenie, 20+ patterns, enterprise pilots | 📅 Future |
 
 ---
 
@@ -462,4 +530,4 @@ See the [`LICENSE`](./LICENSE) file for details.
 
 ---
 
-*See [`AEGIS_PATTERNS.md`](./AEGIS_PATTERNS.md) for the complete knowledge base and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for technical design decisions.*
+*See [`AEGIS_PATTERNS.md`](./AEGIS_PATTERNS.md) for the complete knowledge base, [`ARCHITECTURE.md`](./ARCHITECTURE.md) for technical design decisions, and [`INSTALL.md`](./INSTALL.md) for on-premise installation.*
