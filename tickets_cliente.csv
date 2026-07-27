@@ -1,0 +1,21 @@
+id,description,resolution,category
+INC-001,Unable to access the admin panel after password reset,Reset password via LDAP and verified group permissions,ACCESS
+INC-002,Production database is running out of disk space,Extended EBS volume and ran pg_repack to reclaim space,DATABASE
+INC-003,License key for Elasticsearch expired,Updated license key via Elasticsearch API and restarted cluster,LICENSE
+INC-004,API endpoint /v2/users returns 504 timeout,Increased API gateway timeout and optimized database query,API
+INC-005,Application response time degraded after new deployment,Rolled back deployment and identified memory leak in new code,PERFORMANCE
+INC-006,SSL certificate for api.itsmlab.com expired,Reissued certificate via Let's Encrypt and updated ingress,NETWORK
+INC-007,Suspicious login attempts detected from unknown IP,Blocked IP range in WAF and enabled MFA for all admin accounts,SECURITY
+INC-008,How to configure webhooks for Slack integration,Provided documentation and example payload for webhook setup,HOWTO
+INC-009,Database replication lag exceeds 5 minutes,Identified slow query on replica and added missing index,DATABASE
+INC-010,API rate limiting incorrectly blocking legitimate requests,Adjusted rate limit thresholds per endpoint in API gateway,API
+INC-011,Cannot assign licenses to new users in portal,Fixed license pool allocation script and reassigned available licenses,LICENSE
+INC-012,SSH access to staging servers is timing out,Updated security group rules and restored SSH key on jump box,ACCESS
+INC-013,Memory usage on Kubernetes nodes at 95%,Added node autoscaler and optimized pod resource requests,PERFORMANCE
+INC-014,How to set up database backups for disaster recovery,Provided backup script and scheduled cron job with offsite storage,HOWTO
+INC-015,Unauthorized API calls detected from compromised token,Revoked token and rotated all API keys for the affected service,SECURITY
+INC-016,Network latency between us-east-1 and eu-west-1 increased,Switched to Direct Connect and updated routing tables,NETWORK
+INC-017,Elasticsearch cluster status is yellow with unassigned shards,Rerouted unassigned shards and increased node disk space,DATABASE
+INC-018,License compliance audit requires usage reports,Generated usage report from license server and submitted to compliance,LICENSE
+INC-019,How to deploy a new microservice to the staging environment,Created deployment guide with Helm chart and CI/CD pipeline steps,HOWTO
+INC-020,API authentication failing with invalid token error,Updated JWT secret in configuration and redeployed auth service,API
