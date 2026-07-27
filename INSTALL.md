@@ -102,14 +102,14 @@
 
 ```bash
 # Opción 1: Modelo local con Ollama (recomendado para pruebas)
-curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | bash
 
 # Opción 2: Con API de DeepSeek
-curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | \
   DEEPSEEK_API_KEY=sk-xxx LLM_PROVIDER=deepseek bash
 
 # Opción 3: Con API de OpenAI
-curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | \
   OPENAI_API_KEY=sk-xxx LLM_PROVIDER=openai bash
 ```
 
@@ -135,8 +135,8 @@ $env:LLM_PROVIDER="openai"; $env:OPENAI_API_KEY="sk-xxx"; .\install.ps1
 ### Paso 1: Clonar el repositorio
 
 ```bash
-git clone https://github.com/laral5173/aegis-itsm-agent.git
-cd aegis-itsm-agent
+git clone https://github.com/itsmlab/itsm-agent.git
+cd itsm-agent
 ```
 
 ### Paso 2: Configurar variables de entorno
@@ -489,4 +489,4 @@ docker compose down -v
 
 ---
 
-> **¿Problemas?** Abre un issue en [GitHub](https://github.com/laral5173/aegis-itsm-agent/issues) o contacta al equipo de soporte.
+> **¿Problemas?** Abre un issue en [GitHub](https://github.com/itsmlab/itsm-agent/issues) o contacta al equipo de soporte.

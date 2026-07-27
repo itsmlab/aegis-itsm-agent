@@ -42,8 +42,8 @@ The knowledge base lives in [`ITSMLab_PATTERNS.md`](ITSMLab_PATTERNS.md). To add
 ## Development Setup
 
 ```bash
-git clone https://github.com/laral5173/aegis-itsm-agent.git
-cd aegis-itsm-agent
+git clone https://github.com/itsmlab/itsm-agent.git
+cd itsm-agent
 python -m venv venv
 venv\Scripts\activate  # Windows
 # source venv/bin/activate  # macOS/Linux

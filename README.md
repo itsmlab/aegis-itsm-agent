@@ -100,7 +100,7 @@ Slack / PagerDuty / Jira / ServiceNow
 
 ```bash
 # One-command install — Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | bash
 
 # One-command install — Windows (PowerShell)
 # Download install.ps1 and run:
@@ -119,8 +119,8 @@ The installer will:
 ### Option B: Manual Setup (for development)
 
 ```bash
-git clone https://github.com/laral5173/aegis-itsm-agent.git
-cd aegis-itsm-agent
+git clone https://github.com/itsmlab/itsm-agent.git
+cd itsm-agent
 
 python -m venv venv
 venv\Scripts\activate        # Windows
@@ -518,7 +518,7 @@ Built by **Leopoldo Lara** — AI Solutions Engineer and M.Sc. in Artificial Int
 
 ITSMLab was born from firsthand exposure to hundreds of real incidents across 23 enterprise Azure deployments — and the conviction that the knowledge to resolve them should be available to every team, not just the ones with 10-year veterans on call at 3am.
 
-- **GitHub**: [github.com/laral5173](https://github.com/laral5173)
+- **GitHub**: [github.com/itsmlab](https://github.com/itsmlab)
 - **LinkedIn**: [linkedin.com/in/leopoldo-lara](https://linkedin.com/in/leopoldo-lara)
 
 ---

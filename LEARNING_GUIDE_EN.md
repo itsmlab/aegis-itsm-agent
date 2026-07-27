@@ -808,8 +808,8 @@ Commands grouped by mission, so you can quickly find what you need.
 
 ```bash
 # 1. Clone (if you haven't already)
-git clone https://github.com/laral5173/aegis-itsm-agent.git
-cd aegis-itsm-agent
+git clone https://github.com/itsmlab/itsm-agent.git
+cd itsm-agent
 
 # 2. Create and activate virtual environment
 python -m venv venv

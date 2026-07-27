@@ -928,8 +928,8 @@ Commands grouped by mission, so you can quickly find what you need.
 
 ```bash
 # 1. Clone (if you haven't already)
-git clone https://github.com/laral5173/aegis-itsm-agent.git
-cd aegis-itsm-agent
+git clone https://github.com/itsmlab/itsm-agent.git
+cd itsm-agent
 
 # 2. Create and activate virtual environment
 python -m venv venv
@@ -985,7 +985,7 @@ python cross_validation.py
 
 ```bash
 # One-command install (Linux/macOS) — checks prerequisites, creates .env, starts services
-curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | bash
 
 # One-command install (Windows PowerShell)
 .\install.ps1

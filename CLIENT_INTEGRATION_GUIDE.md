@@ -654,7 +654,7 @@ A: Yes. ITSMLab is designed for on-premise deployment. You can install it on you
 
 ```bash
 # Linux/macOS
-curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | bash
 
 # Windows (PowerShell)
 .\install.ps1
