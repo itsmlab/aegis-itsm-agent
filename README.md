@@ -1,6 +1,6 @@
-# ⚡ AEGIS — Autonomous AI Agent for IT Incident Resolution
+# ⚡ ITSMLab — Autonomous AI Agent for IT Incident Resolution
 
-> *"The knowledge to resolve any incident already exists — from repetitive L1 tickets to critical Tier-4 outages. It lives in postmortems, runbooks, and the experience of engineers who already solved your problem. AEGIS puts it to work for your team in real time."*
+> *"The knowledge to resolve any incident already exists — from repetitive L1 tickets to critical Tier-4 outages. It lives in postmortems, runbooks, and the experience of engineers who already solved your problem. ITSMLab puts it to work for your team in real time."*
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-operational-green?logo=fastapi&logoColor=white)
@@ -25,7 +25,7 @@ When an IT incident occurs — whether a routine L1 ticket or a full Tier-4 prod
 
 ## The Solution
 
-AEGIS is a full-spectrum autonomous AI agent that resolves IT incidents across all severity levels:
+ITSMLab is a full-spectrum autonomous AI agent that resolves IT incidents across all severity levels:
 
 1. **Receives** an alert or ticket via universal webhook (any HTTP POST)
 2. **Classifies** L1/L2 tickets and suggests resolutions instantly (hybrid vector + keyword classifier)
@@ -34,7 +34,7 @@ AEGIS is a full-spectrum autonomous AI agent that resolves IT incidents across a
 
 ### Deployment Options
 
-AEGIS supports **two deployment models**:
+ITSMLab supports **two deployment models**:
 
 | Option | Description | Best for |
 |--------|-------------|----------|
@@ -43,7 +43,7 @@ AEGIS supports **two deployment models**:
 
 ### LLM Provider Options
 
-AEGIS is **LLM-agnostic** — you choose the AI model:
+ITSMLab is **LLM-agnostic** — you choose the AI model:
 
 | Provider | Type | Setup |
 |----------|------|-------|
@@ -86,7 +86,7 @@ Slack / PagerDuty / Jira / ServiceNow
 
 | Time | Action |
 |------|--------|
-| t = 0s | Alert or ticket enters AEGIS via POST /alert |
+| t = 0s | Alert or ticket enters ITSMLab via POST /alert |
 | t = 2s | Integration Module normalizes and routes input |
 | t = 5s | RAG engine searches pattern knowledge base |
 | t = 10s | LLM generates tailored diagnosis |
@@ -148,7 +148,7 @@ LLM_PROVIDER=ollama
 # ANTHROPIC_API_KEY=sk-ant-your-anthropic-api-key
 ```
 
-> **Note:** If you don't configure an LLM, AEGIS still works for L1/L2 classification. L3/L4 diagnosis will return a clear message explaining how to configure it. See [Graceful Degradation](#graceful-degradation).
+> **Note:** If you don't configure an LLM, ITSMLab still works for L1/L2 classification. L3/L4 diagnosis will return a clear message explaining how to configure it. See [Graceful Degradation](#graceful-degradation).
 
 ### Run the server
 
@@ -252,28 +252,28 @@ Extracted from public postmortems of companies that operate at scale:
 | ID | Pattern | Source | Priority |
 |----|---------|--------|----------|
 | **AWS Patterns** | | | |
-| AEGIS-001 | Cascade dependency saturation | AWS Kinesis 2020 | 🔴 HIGH |
-| AEGIS-002 | Human error during deploy | AWS S3 2017 | 🔴 HIGH |
-| AEGIS-003 | Rate limiting / throttling spike | AWS DynamoDB 2021 | 🟡 MEDIUM |
-| AEGIS-004 | Cold starts and concurrency | AWS Lambda 2022 | 🟡 MEDIUM |
-| AEGIS-005 | Database failover failure | AWS RDS 2023 | 🔴 HIGH |
+| ITSMLab-001 | Cascade dependency saturation | AWS Kinesis 2020 | 🔴 HIGH |
+| ITSMLab-002 | Human error during deploy | AWS S3 2017 | 🔴 HIGH |
+| ITSMLab-003 | Rate limiting / throttling spike | AWS DynamoDB 2021 | 🟡 MEDIUM |
+| ITSMLab-004 | Cold starts and concurrency | AWS Lambda 2022 | 🟡 MEDIUM |
+| ITSMLab-005 | Database failover failure | AWS RDS 2023 | 🔴 HIGH |
 | **Other Cloud Patterns** | | | |
-| AEGIS-006 | DNS / Anycast routing loop | Cloudflare 2022 | 🔴 HIGH |
-| AEGIS-007 | Distributed cluster partition | Google Bigtable 2016 | 🔴 HIGH |
-| AEGIS-008 | MySQL metadata lock cascade | GitHub 2021 | 🔴 HIGH |
-| AEGIS-009 | Cassandra saturation post-chaos | Netflix 2018 | 🟡 MEDIUM |
-| AEGIS-010 | BGP route leak | Cloudflare 2024 | 🔴 HIGH |
+| ITSMLab-006 | DNS / Anycast routing loop | Cloudflare 2022 | 🔴 HIGH |
+| ITSMLab-007 | Distributed cluster partition | Google Bigtable 2016 | 🔴 HIGH |
+| ITSMLab-008 | MySQL metadata lock cascade | GitHub 2021 | 🔴 HIGH |
+| ITSMLab-009 | Cassandra saturation post-chaos | Netflix 2018 | 🟡 MEDIUM |
+| ITSMLab-010 | BGP route leak | Cloudflare 2024 | 🔴 HIGH |
 | **Azure Patterns** | | | |
-| AEGIS-011 | Retry amplification cascade | Azure OpenAI 2026 | 🔴 HIGH |
-| AEGIS-012 | Control plane / managed identity failure | Azure VMs 2026 | 🔴 HIGH |
-| AEGIS-013 | DDoS mitigation misconfiguration | Azure Front Door 2024 | 🔴 HIGH |
-| AEGIS-014 | DNS resolution failure | Azure Front Door 2025 | 🔴 HIGH |
-| AEGIS-015 | Regional multi-service disruption | Azure West Europe 2025 | 🔴 HIGH |
-| AEGIS-016 | Entra ID / auth failures | Azure AD 2022 | 🔴 HIGH |
-| AEGIS-017 | Firewall network connectivity loss | Azure Firewall 2022 | 🔴 HIGH |
-| AEGIS-018 | WAN / network routing failure | Azure WAN 2023 | 🔴 HIGH |
-| AEGIS-019 | AKS node pool / control plane failure | Azure AKS 2024 | 🔴 HIGH |
-| AEGIS-020 | SQL connection pool exhaustion | Azure SQL 2025 | 🔴 HIGH |
+| ITSMLab-011 | Retry amplification cascade | Azure OpenAI 2026 | 🔴 HIGH |
+| ITSMLab-012 | Control plane / managed identity failure | Azure VMs 2026 | 🔴 HIGH |
+| ITSMLab-013 | DDoS mitigation misconfiguration | Azure Front Door 2024 | 🔴 HIGH |
+| ITSMLab-014 | DNS resolution failure | Azure Front Door 2025 | 🔴 HIGH |
+| ITSMLab-015 | Regional multi-service disruption | Azure West Europe 2025 | 🔴 HIGH |
+| ITSMLab-016 | Entra ID / auth failures | Azure AD 2022 | 🔴 HIGH |
+| ITSMLab-017 | Firewall network connectivity loss | Azure Firewall 2022 | 🔴 HIGH |
+| ITSMLab-018 | WAN / network routing failure | Azure WAN 2023 | 🔴 HIGH |
+| ITSMLab-019 | AKS node pool / control plane failure | Azure AKS 2024 | 🔴 HIGH |
+| ITSMLab-020 | SQL connection pool exhaustion | Azure SQL 2025 | 🔴 HIGH |
 
 Each pattern includes: symptoms, root cause diagnosis, and a production-ready remediation script.
 
@@ -292,7 +292,7 @@ Each pattern includes: symptoms, root cause diagnosis, and a production-ready re
 
 ### RAG with Pattern Chunking
 
-The L3/L4 orchestrator now uses **Retrieval-Augmented Generation (RAG)** to select only the most relevant patterns from the knowledge base, instead of sending the full `AEGIS_PATTERNS.md` to the LLM on every request.
+The L3/L4 orchestrator now uses **Retrieval-Augmented Generation (RAG)** to select only the most relevant patterns from the knowledge base, instead of sending the full `ITSMLab_PATTERNS.md` to the LLM on every request.
 
 - Each pattern is **chunked individually** and stored as a vector embedding in ChromaDB
 - On diagnosis, only the **top-3 most relevant chunks** are retrieved based on semantic similarity
@@ -306,7 +306,7 @@ python scripts/init_knowledge_base.py
 
 ### Rate Limiting
 
-AEGIS enforces per-tenant rate limits based on plan:
+ITSMLab enforces per-tenant rate limits based on plan:
 
 | Plan | Requests per hour |
 |------|-------------------|
@@ -323,7 +323,7 @@ When exceeded, the API returns **HTTP 429** with a clear error message.
 
 ### Graceful Degradation
 
-If the LLM is not configured or unavailable, AEGIS enters **degraded mode**:
+If the LLM is not configured or unavailable, ITSMLab enters **degraded mode**:
 
 - **L1/L2 classification** continues to work normally (no LLM needed)
 - **L3/L4 diagnosis** returns **HTTP 503** with a provider-specific message explaining how to configure it
@@ -372,7 +372,7 @@ Receives any alert or ticket and returns diagnosis + remediation script.
   "source": "pagerduty",
   "severity": "critical",
   "level": "L3/L4",
-  "pattern_id": "AEGIS-005",
+  "pattern_id": "ITSMLab-005",
   "pattern_name": "Database Failover",
   "diagnosis": "Root cause explanation tailored to the alert...",
   "script": "#!/bin/bash\n# Remediation commands...",
@@ -456,7 +456,7 @@ aegis-itsm-agent/
 ├── test_classifier.py         # Accuracy tests (22 tickets)
 ├── cross_validation.py        # 5-fold cross-validation with metrics
 ├── test_integration.py        # Import verification for integration module
-├── AEGIS_PATTERNS.md          # 20 real incident patterns (L3/L4 knowledge base)
+├── ITSMLab_PATTERNS.md          # 20 real incident patterns (L3/L4 knowledge base)
 ├── ARCHITECTURE.md            # Technical architecture and design decisions
 ├── INSTALL.md                 # On-premise installation guide
 ├── CLIENT_INTEGRATION_GUIDE.md# Client integration guide
@@ -492,13 +492,13 @@ aegis-itsm-agent/
 
 ## Consulting
 
-I offer consulting services to help teams implement AEGIS and automate their incident response:
+I offer consulting services to help teams implement ITSMLab and automate their incident response:
 
 - **Assessment** — Analyze your current incident management workflow and identify automation opportunities
-- **Implementation** — Deploy AEGIS in your environment (on-premise, cloud, or hybrid)
+- **Implementation** — Deploy ITSMLab in your environment (on-premise, cloud, or hybrid)
 - **Customization** — Train the classifier on your historical tickets, add your runbooks to the knowledge base
-- **Integration** — Connect AEGIS to your existing tools (Slack, PagerDuty, Jira, ServiceNow, Datadog)
-- **Training** — Teach your team how to maintain and extend AEGIS
+- **Integration** — Connect ITSMLab to your existing tools (Slack, PagerDuty, Jira, ServiceNow, Datadog)
+- **Training** — Teach your team how to maintain and extend ITSMLab
 
 See [`CONSULTING_PROJECT.md`](./CONSULTING_PROJECT.md) for a detailed case study and proposal.
 
@@ -516,7 +516,7 @@ This project follows a [Code of Conduct](./CODE_OF_CONDUCT.md) — be excellent 
 
 Built by **Leopoldo Lara** — AI Solutions Engineer and M.Sc. in Artificial Intelligence (GPA 9.78/10) with 15+ years of enterprise experience at Blue Yonder and Epicor Software. Currently serving as Tier-4 Escalation Authority for mission-critical SaaS environments globally.
 
-AEGIS was born from firsthand exposure to hundreds of real incidents across 23 enterprise Azure deployments — and the conviction that the knowledge to resolve them should be available to every team, not just the ones with 10-year veterans on call at 3am.
+ITSMLab was born from firsthand exposure to hundreds of real incidents across 23 enterprise Azure deployments — and the conviction that the knowledge to resolve them should be available to every team, not just the ones with 10-year veterans on call at 3am.
 
 - **GitHub**: [github.com/laral5173](https://github.com/laral5173)
 - **LinkedIn**: [linkedin.com/in/leopoldo-lara](https://linkedin.com/in/leopoldo-lara)
@@ -530,4 +530,4 @@ See the [`LICENSE`](./LICENSE) file for details.
 
 ---
 
-*See [`AEGIS_PATTERNS.md`](./AEGIS_PATTERNS.md) for the complete knowledge base, [`ARCHITECTURE.md`](./ARCHITECTURE.md) for technical design decisions, and [`INSTALL.md`](./INSTALL.md) for on-premise installation.*
+*See [`ITSMLab_PATTERNS.md`](./ITSMLab_PATTERNS.md) for the complete knowledge base, [`ARCHITECTURE.md`](./ARCHITECTURE.md) for technical design decisions, and [`INSTALL.md`](./INSTALL.md) for on-premise installation.*

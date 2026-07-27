@@ -205,7 +205,7 @@ def get_or_create_collection(collection_name: str, replace: bool = False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Import real customer tickets into ChromaDB for AEGIS evaluation",
+        description="Import real customer tickets into ChromaDB for ITSMLab evaluation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

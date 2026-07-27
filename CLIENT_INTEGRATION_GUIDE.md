@@ -1,4 +1,4 @@
-# AEGIS — Client Integration Guide
+# ITSMLab — Client Integration Guide
 
 > **Version 3.1.0** · *Autonomous IT Incident Resolution*
 
@@ -21,23 +21,23 @@
 
 ## 1. Introduction
 
-### What is AEGIS?
+### What is ITSMLab?
 
-AEGIS is an **autonomous IT incident resolution system** that acts as your first line of defense. When your monitoring tools (PagerDuty, Slack, or custom scripts) detect an issue, AEGIS automatically:
+ITSMLab is an **autonomous IT incident resolution system** that acts as your first line of defense. When your monitoring tools (PagerDuty, Slack, or custom scripts) detect an issue, ITSMLab automatically:
 
 1. **Classifies** the incident by category (Access, Database, Network, Security, etc.)
 2. **Diagnoses** the root cause using a vector-based knowledge base
 3. **Resolves** L1/L2 incidents automatically with runbook scripts
 4. **Escalates** critical L3/L4 incidents to your senior engineers with full context
 
-Think of AEGIS as a **tireless L1 engineer** that works 24/7, resolves routine issues in seconds, and gives your team more time to focus on complex problems.
+Think of ITSMLab as a **tireless L1 engineer** that works 24/7, resolves routine issues in seconds, and gives your team more time to focus on complex problems.
 
 ### How it works
 
 ```
 ┌─────────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────────┐
 │  PagerDuty  │────▶│          │     │  L1/L2       │────▶│  Auto-resolve │
-│  Slack Bot  │────▶│  AEGIS   │────▶│  (routine)   │     │  + runbook    │
+│  Slack Bot  │────▶│  ITSMLab │────▶│  (routine)   │     │  + runbook    │
 │  API Call   │────▶│  Engine  │     │  L3/L4       │────▶│  Escalate to  │
 │  Webhook    │────▶│          │     │  (critical)  │     │  senior eng.  │
 └─────────────┘     └──────────┘     └──────────────┘     └──────────────┘
@@ -47,13 +47,13 @@ Think of AEGIS as a **tireless L1 engineer** that works 24/7, resolves routine i
 
 ## 2. Prerequisites
 
-Before integrating with AEGIS, ensure you have:
+Before integrating with ITSMLab, ensure you have:
 
 | Requirement | Details |
 |-------------|---------|
-| **AEGIS tenant** | Your organization's account (see [Step 1](#3-step-1-initial-setup)) |
-| **API key** | A valid `aeg_live_*` key for authentication |
-| **Network access** | Ability to reach the AEGIS API endpoint (HTTPS) |
+| **ITSMLab tenant** | Your organization's account (see [Step 1](#3-step-1-initial-setup)) |
+| **API key** | A valid `itsmlab_live_*` key for authentication |
+| **Network access** | Ability to reach the ITSMLab API endpoint (HTTPS) |
 | **Monitoring tools** | PagerDuty account (optional), Slack workspace (optional) |
 | **HTTP client** | `curl`, Postman, or any HTTP library for API calls |
 
@@ -74,22 +74,22 @@ Before integrating with AEGIS, ensure you have:
 
 ### 3.1 Get your tenant
 
-Contact the AEGIS admin team to create your tenant. You will receive:
+Contact the ITSMLab admin team to create your tenant. You will receive:
 
 - **Tenant ID** — a UUID that identifies your organization (e.g., `f01f8222-aa0a-4e7f-bda5-10582cbb2e50`)
 - **Tenant slug** — a human-readable identifier (e.g., `acme-corp`)
 - **Plan** — your subscription tier (`shield`, `guard`, or `fortress`)
-- **API key** — a secret key starting with `aeg_live_`
+- **API key** — a secret key starting with `itsmlab_live_`
 
 > ⚠️ **Important:** Your API key is shown only once. Store it securely in a password manager or secrets vault. If you lose it, you'll need to generate a new one.
 
 ### 3.2 Verify connectivity
 
-Once you have your API key, verify that you can reach the AEGIS API:
+Once you have your API key, verify that you can reach the ITSMLab API:
 
 ```bash
-curl -s https://your-aegis-instance.com/v1/health \
-  -H "X-API-Key: aeg_live_your_key_here"
+curl -s https://your-itsmlab-instance.com/v1/health \
+  -H "X-API-Key: itsmlab_live_your_key_here"
 ```
 
 Expected response:
@@ -110,8 +110,8 @@ Expected response:
 ### 3.3 Check your stats
 
 ```bash
-curl -s https://your-aegis-instance.com/v1/stats \
-  -H "X-API-Key: aeg_live_your_key_here"
+curl -s https://your-itsmlab-instance.com/v1/stats \
+  -H "X-API-Key: itsmlab_live_your_key_here"
 ```
 
 This returns your current usage, classifier status, and plan information.
@@ -124,13 +124,13 @@ This returns your current usage, classifier status, and plan information.
 
 The primary endpoint for submitting incidents is `POST /v1/alert`.
 
-**Endpoint:** `POST https://your-aegis-instance.com/v1/alert`
+**Endpoint:** `POST https://your-itsmlab-instance.com/v1/alert`
 
 **Headers:**
 | Header | Value | Required |
 |--------|-------|----------|
 | `Content-Type` | `application/json` | ✅ |
-| `X-API-Key` | `aeg_live_your_key_here` | ✅ |
+| `X-API-Key` | `itsmlab_live_your_key_here` | ✅ |
 
 **Request body:**
 
@@ -150,9 +150,9 @@ The primary endpoint for submitting incidents is `POST /v1/alert`.
 **Example with curl:**
 
 ```bash
-curl -s -X POST https://your-aegis-instance.com/v1/alert \
+curl -s -X POST https://your-itsmlab-instance.com/v1/alert \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: aeg_live_your_key_here" \
+  -H "X-API-Key: itsmlab_live_your_key_here" \
   -d '{
     "source": "pagerduty",
     "severity": "low",
@@ -196,7 +196,7 @@ curl -s -X POST https://your-aegis-instance.com/v1/alert \
 
 ### 4.3 Severity routing
 
-AEGIS automatically routes incidents based on severity and keywords:
+ITSMLab automatically routes incidents based on severity and keywords:
 
 | Severity | Route | Description |
 |----------|-------|-------------|
@@ -205,18 +205,18 @@ AEGIS automatically routes incidents based on severity and keywords:
 | `high` | L3/L4 | Critical issues (service degradation) |
 | `critical` | L3/L4 | Emergency (outage, data loss, security breach) |
 
-If no severity is provided, AEGIS analyzes the description for critical keywords like `outage`, `down`, `failover`, `crash`, `500`, `503`, etc.
+If no severity is provided, ITSMLab analyzes the description for critical keywords like `outage`, `down`, `failover`, `crash`, `500`, `503`, etc.
 
 ### 4.4 L1/L2 response (routine)
 
-For routine incidents, AEGIS returns:
+For routine incidents, ITSMLab returns:
 - A **diagnosis** with the predicted category and confidence score
 - A **resolution script** with step-by-step instructions
 - **Similar tickets** from the knowledge base
 
 ### 4.5 L3/L4 response (critical)
 
-For critical incidents, AEGIS returns:
+For critical incidents, ITSMLab returns:
 - A **diagnosis** generated by the LLM (DeepSeek or OpenAI)
 - A **resolution plan** with escalation steps
 - The incident is flagged for immediate human attention
@@ -224,9 +224,9 @@ For critical incidents, AEGIS returns:
 **Example critical alert:**
 
 ```bash
-curl -s -X POST https://your-aegis-instance.com/v1/alert \
+curl -s -X POST https://your-itsmlab-instance.com/v1/alert \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: aeg_live_your_key_here" \
+  -H "X-API-Key: itsmlab_live_your_key_here" \
   -d '{
     "source": "pagerduty",
     "severity": "critical",
@@ -244,7 +244,7 @@ curl -s -X POST https://your-aegis-instance.com/v1/alert \
 | `401` | Unauthorized | Verify your API key |
 | `422` | Validation error | Check required fields (title, description) |
 | `429` | Rate limit exceeded | Wait and retry (plan-dependent) |
-| `500` | Server error | Contact AEGIS support |
+| `500` | Server error | Contact ITSMLab support |
 
 ### 4.7 Code examples
 
@@ -253,8 +253,8 @@ curl -s -X POST https://your-aegis-instance.com/v1/alert \
 ```python
 import requests
 
-API_URL = "https://your-aegis-instance.com"
-API_KEY = "aeg_live_your_key_here"
+API_URL = "https://your-itsmlab-instance.com"
+API_KEY = "itsmlab_live_your_key_here"
 
 alert = {
     "source": "monitoring",
@@ -281,8 +281,8 @@ else:
 **Node.js:**
 
 ```javascript
-const API_URL = 'https://your-aegis-instance.com';
-const API_KEY = 'aeg_live_your_key_here';
+const API_URL = 'https://your-itsmlab-instance.com';
+const API_KEY = 'itsmlab_live_your_key_here';
 
 const alert = {
   source: 'monitoring',
@@ -309,10 +309,10 @@ console.log(`Diagnosis: ${result.diagnosis}`);
 
 ```bash
 #!/bin/bash
-# send_alert.sh — Send an alert to AEGIS
+# send_alert.sh — Send an alert to ITSMLab
 
-API_URL="https://your-aegis-instance.com"
-API_KEY="aeg_live_your_key_here"
+API_URL="https://your-itsmlab-instance.com"
+API_KEY="itsmlab_live_your_key_here"
 
 curl -s -X POST "${API_URL}/v1/alert" \
   -H "Content-Type: application/json" \
@@ -340,14 +340,14 @@ Usage: `./send_alert.sh "High memory usage" "Memory at 95% on db-01"`
 
 | Field | Value |
 |-------|-------|
-| **Webhook URL** | `https://your-aegis-instance.com/v1/alert` |
-| **Secret** | Leave blank (AEGIS uses API key header) |
-| **Scope** | Select the services you want AEGIS to monitor |
+| **Webhook URL** | `https://your-itsmlab-instance.com/v1/alert` |
+| **Secret** | Leave blank (ITSMLab uses API key header) |
+| **Scope** | Select the services you want ITSMLab to monitor |
 | **Events** | `incident.triggered` |
 
 5. Add a custom header:
    - **Name:** `X-API-Key`
-   - **Value:** `aeg_live_your_key_here`
+   - **Value:** `itsmlab_live_your_key_here`
 
 6. Click **"Add Webhook"** to save
 
@@ -355,10 +355,10 @@ Usage: `./send_alert.sh "High memory usage" "Memory at 95% on db-01"`
 
 When PagerDuty triggers an incident:
 
-1. PagerDuty sends a webhook to AEGIS with the incident details
-2. AEGIS classifies the incident and runs a diagnosis
-3. For L1/L2 incidents, AEGIS returns a resolution script
-4. For L3/L4 incidents, AEGIS provides escalation context
+1. PagerDuty sends a webhook to ITSMLab with the incident details
+2. ITSMLab classifies the incident and runs a diagnosis
+3. For L1/L2 incidents, ITSMLab returns a resolution script
+4. For L3/L4 incidents, ITSMLab provides escalation context
 5. The response can be used to auto-resolve or update the PagerDuty incident
 
 ### 5.3 Testing the integration
@@ -367,9 +367,9 @@ Trigger a test alert from PagerDuty:
 
 ```bash
 # Simulate a PagerDuty webhook
-curl -s -X POST https://your-aegis-instance.com/v1/alert \
+curl -s -X POST https://your-itsmlab-instance.com/v1/alert \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: aeg_live_your_key_here" \
+  -H "X-API-Key: itsmlab_live_your_key_here" \
   -d '{
     "source": "pagerduty",
     "severity": "low",
@@ -385,9 +385,9 @@ curl -s -X POST https://your-aegis-instance.com/v1/alert \
 ### 6.1 Configure the Slack bot
 
 1. Go to your Slack **Apps** page
-2. Click **"Add Apps"** and search for your AEGIS bot
+2. Click **"Add Apps"** and search for your ITSMLab bot
 3. Click **"Add to Slack"**
-4. The bot will join the configured channel (e.g., `#aegis-alerts`)
+4. The bot will join the configured channel (e.g., `#itsmlab-alerts`)
 
 ### 6.2 Using the Slack bot
 
@@ -396,30 +396,30 @@ Once the bot is in your channel, you can interact with it:
 **Send an alert via DM or channel:**
 
 ```
-/aegis diagnose User cannot log in after password reset
+/itsmlab diagnose User cannot log in after password reset
 ```
 
 **Check system status:**
 
 ```
-/aegis status
+/itsmlab status
 ```
 
 **Get usage statistics:**
 
 ```
-/aegis stats
+/itsmlab stats
 ```
 
 ### 6.3 Slack webhook integration
 
-You can also configure Slack to forward messages to AEGIS:
+You can also configure Slack to forward messages to ITSMLab:
 
 1. In Slack, go to **Settings → Workflows**
 2. Create a new workflow triggered by **"When a message is posted in a channel"**
 3. Add a step: **"Send a webhook"**
-4. Set the webhook URL to `https://your-aegis-instance.com/v1/alert`
-5. Add header `X-API-Key: aeg_live_your_key_here`
+4. Set the webhook URL to `https://your-itsmlab-instance.com/v1/alert`
+5. Add header `X-API-Key: itsmlab_live_your_key_here`
 6. Map the message content to the `title` and `description` fields
 
 ---
@@ -431,7 +431,7 @@ You can also configure Slack to forward messages to AEGIS:
 Open your browser and navigate to:
 
 ```
-https://your-aegis-instance.com/dashboard
+https://your-itsmlab-instance.com/dashboard
 ```
 
 The dashboard shows:
@@ -448,8 +448,8 @@ The dashboard shows:
 For programmatic monitoring, use the `GET /metrics` endpoint:
 
 ```bash
-curl -s https://your-aegis-instance.com/metrics \
-  -H "X-API-Key: aeg_live_your_key_here"
+curl -s https://your-itsmlab-instance.com/metrics \
+  -H "X-API-Key: itsmlab_live_your_key_here"
 ```
 
 Response:
@@ -493,7 +493,7 @@ Response:
 Interactive API documentation is available at:
 
 ```
-https://your-aegis-instance.com/docs
+https://your-itsmlab-instance.com/docs
 ```
 
 This provides a Swagger UI where you can explore and test all endpoints.
@@ -522,8 +522,8 @@ This provides a Swagger UI where you can explore and test all endpoints.
 You can check your current usage at any time:
 
 ```bash
-curl -s https://your-aegis-instance.com/v1/stats \
-  -H "X-API-Key: aeg_live_your_key_here"
+curl -s https://your-itsmlab-instance.com/v1/stats \
+  -H "X-API-Key: itsmlab_live_your_key_here"
 ```
 
 The response includes:
@@ -533,7 +533,7 @@ The response includes:
 
 ### Rate limits
 
-AEGIS enforces per-tenant rate limits using a sliding window algorithm. Limits are based on your plan:
+ITSMLab enforces per-tenant rate limits using a sliding window algorithm. Limits are based on your plan:
 
 | Plan | Requests per hour | Window |
 |------|-------------------|--------|
@@ -570,7 +570,7 @@ The response also includes a `Retry-After` header with the number of seconds to 
 
 ### Graceful degradation
 
-AEGIS is designed to work even when the LLM (AI) provider is not configured. This is called **graceful degradation**.
+ITSMLab is designed to work even when the LLM (AI) provider is not configured. This is called **graceful degradation**.
 
 **What happens if no API key is configured?**
 
@@ -590,7 +590,7 @@ AEGIS is designed to work even when the LLM (AI) provider is not configured. Thi
   "pattern_id": "LLM-UNAVAILABLE",
   "pattern_name": "LLM Provider Not Configured",
   "diagnosis": "LLM provider 'deepseek' not configured. Please set DEEPSEEK_API_KEY in your .env file.",
-  "script": "1. Open the .env file in the project root\n2. Add DEEPSEEK_API_KEY=your_deepseek_api_key_here\n3. Restart the AEGIS service\n4. Verify with GET /v1/health",
+  "script": "1. Open the .env file in the project root\n2. Add DEEPSEEK_API_KEY=your_deepseek_api_key_here\n3. Restart the ITSMLab service\n4. Verify with GET /v1/health",
   "confidence": null
 }
 ```
@@ -605,7 +605,7 @@ AEGIS is designed to work even when the LLM (AI) provider is not configured. Thi
   "pattern_id": "LLM-UNAVAILABLE",
   "pattern_name": "Ollama Not Reachable",
   "diagnosis": "Ollama is not running or not reachable. Please ensure Ollama is installed and running.",
-  "script": "1. Install Ollama from https://ollama.com\n2. Run: ollama pull llama3\n3. Run: ollama serve\n4. Verify: curl http://localhost:11434/api/tags\n5. Restart the AEGIS service",
+  "script": "1. Install Ollama from https://ollama.com\n2. Run: ollama pull llama3\n3. Run: ollama serve\n4. Verify: curl http://localhost:11434/api/tags\n5. Restart the ITSMLab service",
   "confidence": null
 }
 ```
@@ -613,8 +613,8 @@ AEGIS is designed to work even when the LLM (AI) provider is not configured. Thi
 **How to check LLM status:**
 
 ```bash
-curl -s https://your-aegis-instance.com/v1/health \
-  -H "X-API-Key: aeg_live_your_key_here"
+curl -s https://your-itsmlab-instance.com/v1/health \
+  -H "X-API-Key: itsmlab_live_your_key_here"
 ```
 
 Look for these fields in the response:
@@ -626,7 +626,7 @@ Look for these fields in the response:
 1. Set `LLM_PROVIDER=deepseek` (or `openai` or `ollama`) in your `.env` file
 2. Set the corresponding API key (`DEEPSEEK_API_KEY` or `OPENAI_API_KEY`) if using external API
 3. For Ollama, ensure the Ollama service is running
-4. Restart the AEGIS service
+4. Restart the ITSMLab service
 5. Verify with `GET /v1/health` — `llm_available` should be `true`
 
 ---
@@ -636,21 +636,21 @@ Look for these fields in the response:
 
 ### General
 
-**Q: What happens if AEGIS can't classify an incident?**
+**Q: What happens if ITSMLab can't classify an incident?**
 
-A: If the confidence score is below the threshold (45%), AEGIS marks the incident as "UNKNOWN" and routes it to a human agent with all available context.
+A: If the confidence score is below the threshold (45%), ITSMLab marks the incident as "UNKNOWN" and routes it to a human agent with all available context.
 
-**Q: Does AEGIS modify my systems?**
+**Q: Does ITSMLab modify my systems?**
 
-A: No. AEGIS is a read-only diagnostic system. It provides resolution scripts, but does not execute them automatically unless explicitly configured to do so.
+A: No. ITSMLab is a read-only diagnostic system. It provides resolution scripts, but does not execute them automatically unless explicitly configured to do so.
 
 **Q: How is my data protected?**
 
 A: All API communications use HTTPS. API keys are stored as SHA-256 hashes. Each tenant's data is isolated in a multi-tenant architecture.
 
-**Q: Can I run AEGIS on-premises?**
+**Q: Can I run ITSMLab on-premises?**
 
-A: Yes. AEGIS is designed for on-premise deployment. You can install it on your own infrastructure using Docker with a single command:
+A: Yes. ITSMLab is designed for on-premise deployment. You can install it on your own infrastructure using Docker with a single command:
 
 ```bash
 # Linux/macOS
@@ -681,16 +681,16 @@ A: If you exceed your plan's rate limit, you'll receive a `429 Too Many Requests
 
 A: Diagnosis results are stored for 90 days for Shield plans, and 365 days for Guard and Fortress plans.
 
-**Q: Can I integrate AEGIS with my own monitoring tool?**
+**Q: Can I integrate ITSMLab with my own monitoring tool?**
 
-A: Yes. Any tool that can send HTTP requests can integrate with AEGIS via the REST API. See [Step 2](#4-step-2-api-integration) for details.
+A: Yes. Any tool that can send HTTP requests can integrate with ITSMLab via the REST API. See [Step 2](#4-step-2-api-integration) for details.
 
 ### Troubleshooting
 
 **Q: I'm getting a 401 error. What should I do?**
 
 A: Verify that:
-1. Your API key starts with `aeg_live_`
+1. Your API key starts with `itsmlab_live_`
 2. The key is correctly copied (no extra spaces)
 3. The key hasn't been revoked
 4. You're sending it in the `X-API-Key` header
@@ -701,7 +701,7 @@ A: Provide more context in the `title` and `description` fields. Include error m
 
 **Q: How do I reset my API key?**
 
-A: Contact your AEGIS admin to generate a new key. The old key will be revoked immediately.
+A: Contact your ITSMLab admin to generate a new key. The old key will be revoked immediately.
 
 ---
 
@@ -711,10 +711,10 @@ A: Contact your AEGIS admin to generate a new key. The old key will be revoked i
 
 | Channel | Details |
 |---------|---------|
-| **Email** | support@aegis-itsm.com |
-| **Slack** | Join our community: aegis-itsm.slack.com |
-| **Documentation** | [docs.aegis-itsm.com](https://docs.aegis-itsm.com) |
-| **Status page** | [status.aegis-itsm.com](https://status.aegis-itsm.com) |
+| **Email** | support@itsmlab.com |
+| **Slack** | Join our community: itsmlab.slack.com |
+| **Documentation** | [docs.itsmlab.com](https://docs.itsmlab.com) |
+| **Status page** | [status.itsmlab.com](https://status.itsmlab.com) |
 
 ### Response times
 
@@ -735,6 +735,6 @@ When reporting an issue, please include:
 
 ---
 
-> 🛡️ **AEGIS** — Autonomous IT Incident Resolution · v3.1.0
+> 🛡️ **ITSMLab** — Autonomous IT Incident Resolution · v3.1.0
 >
 > *"Your first line of defense, working 24/7."*

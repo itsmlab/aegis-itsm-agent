@@ -1,13 +1,13 @@
-# AEGIS Architecture v3.1 — Full-Spectrum IT Incident Resolution
+# ITSMLab Architecture v3.1 — Full-Spectrum IT Incident Resolution
 
 ## Overview
 
-AEGIS is a full-spectrum autonomous AI agent that resolves IT incidents across all severity levels — from routine L1/L2 support tickets to critical Tier-3/Tier-4 outages — in seconds rather than hours.
+ITSMLab is a full-spectrum autonomous AI agent that resolves IT incidents across all severity levels — from routine L1/L2 support tickets to critical Tier-3/Tier-4 outages — in seconds rather than hours.
 
 The architecture is built around three core principles:
 - **Modular** — each component has a single responsibility and can be deployed independently
 - **API-first** — every component exposes a clean interface for integration with existing stacks
-- **Incremental** — teams can adopt AEGIS at any level without replacing existing tools
+- **Incremental** — teams can adopt ITSMLab at any level without replacing existing tools
 
 ---
 
@@ -34,7 +34,7 @@ The architecture is built around three core principles:
 
 ## Deployment Models
 
-AEGIS supports two deployment models:
+ITSMLab supports two deployment models:
 
 ### On-Premise (Docker)
 
@@ -46,7 +46,7 @@ AEGIS supports two deployment models:
                       ▼
 ┌─────────────────────────────────────────────────────────┐
 │  ┌──────────┐    ┌──────────┐    ┌──────────────────┐  │
-│  │  Caddy   │───▶│  AEGIS   │───▶│   PostgreSQL     │  │
+│  │  Caddy   │───▶│  ITSMLab │───▶│   PostgreSQL     │  │
 │  │ (proxy)  │    │   App    │    │   (datos)        │  │
 │  └──────────┘    └────┬─────┘    └──────────────────┘  │
 │                       │                                 │
@@ -77,7 +77,7 @@ AEGIS supports two deployment models:
 ```
 ┌─────────────┐     ┌──────────┐     ┌──────────────┐     ┌──────────────┐
 │  PagerDuty  │────▶│          │     │  L1/L2       │────▶│  Auto-resolve │
-│  Slack Bot  │────▶│  AEGIS   │────▶│  (routine)   │     │  + runbook    │
+│  Slack Bot  │────▶│  ITSMLab │────▶│  (routine)   │     │  + runbook    │
 │  API Call   │────▶│  Engine  │     │  L3/L4       │────▶│  Escalate to  │
 │  Webhook    │────▶│          │     │  (critical)  │     │  senior eng.  │
 └─────────────┘     └──────────┘     └──────────────┘     └──────────────┘
@@ -97,7 +97,7 @@ AEGIS supports two deployment models:
                           │ normalized input
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      AEGIS CORE                             │
+│                      ITSMLab CORE                            │
 │                                                             │
 │  ┌──────────────────────┐  ┌──────────────────────────┐   │
 │  │  TICKET CLASSIFIER   │  │  INCIDENT ORCHESTRATOR   │   │
@@ -231,7 +231,7 @@ Alert text
 ```
 
 **Chunking strategy:**
-- Each pattern in `AEGIS_PATTERNS.md` is split into its own chunk using the `## Pattern AEGIS-XXX` header as delimiter
+- Each pattern in `ITSMLab_PATTERNS.md` is split into its own chunk using the `## Pattern ITSMLab-XXX` header as delimiter
 - Chunks are embedded with `all-MiniLM-L6-v2` and stored in a dedicated ChromaDB collection (`patterns_chunks`)
 - On diagnosis, only the **top-3 most relevant chunks** are retrieved based on semantic similarity to the alert
 - This reduces token usage by **~80%** compared to sending the full knowledge base
@@ -272,30 +272,30 @@ If the LLM is not configured or unavailable, the orchestrator enters **degraded 
 
 | ID | Pattern | Source |
 |----|---------|--------|
-| AEGIS-001 | Cascade dependency saturation | AWS Kinesis 2020 |
-| AEGIS-002 | Human error during deploy | AWS S3 2017 |
-| AEGIS-003 | Rate limiting / throttling spike | AWS DynamoDB 2021 |
-| AEGIS-004 | Cold starts and concurrency | AWS Lambda 2022 |
-| AEGIS-005 | Database failover failure | AWS RDS 2023 |
-| AEGIS-006 | DNS / Anycast routing loop | Cloudflare 2022 |
-| AEGIS-007 | Distributed cluster partition | Google Bigtable 2016 |
-| AEGIS-008 | MySQL metadata lock cascade | GitHub 2021 |
-| AEGIS-009 | Cassandra saturation post-chaos | Netflix 2018 |
-| AEGIS-010 | BGP route leak | Cloudflare 2024 |
-| AEGIS-011 | Retry amplification cascade | Azure OpenAI 2026 |
-| AEGIS-012 | Control plane / managed identity failure | Azure VMs 2026 |
-| AEGIS-013 | DDoS mitigation misconfiguration | Azure Front Door 2024 |
-| AEGIS-014 | DNS resolution failure | Azure Front Door 2025 |
-| AEGIS-015 | Regional multi-service disruption | Azure West Europe 2025 |
-| AEGIS-016 | Entra ID / auth failures | Azure AD 2022 |
-| AEGIS-017 | Firewall network connectivity loss | Azure Firewall 2022 |
-| AEGIS-018 | WAN / network routing failure | Azure WAN 2023 |
-| AEGIS-019 | AKS node pool / control plane failure | Azure AKS 2024 |
-| AEGIS-020 | SQL connection pool exhaustion | Azure SQL 2025 |
+| ITSMLab-001 | Cascade dependency saturation | AWS Kinesis 2020 |
+| ITSMLab-002 | Human error during deploy | AWS S3 2017 |
+| ITSMLab-003 | Rate limiting / throttling spike | AWS DynamoDB 2021 |
+| ITSMLab-004 | Cold starts and concurrency | AWS Lambda 2022 |
+| ITSMLab-005 | Database failover failure | AWS RDS 2023 |
+| ITSMLab-006 | DNS / Anycast routing loop | Cloudflare 2022 |
+| ITSMLab-007 | Distributed cluster partition | Google Bigtable 2016 |
+| ITSMLab-008 | MySQL metadata lock cascade | GitHub 2021 |
+| ITSMLab-009 | Cassandra saturation post-chaos | Netflix 2018 |
+| ITSMLab-010 | BGP route leak | Cloudflare 2024 |
+| ITSMLab-011 | Retry amplification cascade | Azure OpenAI 2026 |
+| ITSMLab-012 | Control plane / managed identity failure | Azure VMs 2026 |
+| ITSMLab-013 | DDoS mitigation misconfiguration | Azure Front Door 2024 |
+| ITSMLab-014 | DNS resolution failure | Azure Front Door 2025 |
+| ITSMLab-015 | Regional multi-service disruption | Azure West Europe 2025 |
+| ITSMLab-016 | Entra ID / auth failures | Azure AD 2022 |
+| ITSMLab-017 | Firewall network connectivity loss | Azure Firewall 2022 |
+| ITSMLab-018 | WAN / network routing failure | Azure WAN 2023 |
+| ITSMLab-019 | AKS node pool / control plane failure | Azure AKS 2024 |
+| ITSMLab-020 | SQL connection pool exhaustion | Azure SQL 2025 |
 
 ### 5. Rate Limiting
 
-AEGIS enforces per-tenant rate limits using an in-memory sliding window algorithm.
+ITSMLab enforces per-tenant rate limits using an in-memory sliding window algorithm.
 
 **Architecture:**
 
@@ -368,13 +368,13 @@ Sandboxed execution environment with human approval flow.
 ```
 Ticket/Alert created
         ↓
-AEGIS classifies or diagnoses
+ITSMLab classifies or diagnoses
         ↓
 Human reviews and resolves
         ↓
 Resolution fed back to knowledge base
         ↓
-AEGIS improves for next similar incident
+ITSMLab improves for next similar incident
 ```
 
 ---
@@ -386,7 +386,7 @@ aegis-itsm-agent/
 ├── README.md                 # Project overview and quick start
 ├── ARCHITECTURE.md           # This file
 ├── INSTALL.md                # On-premise installation guide
-├── AEGIS_PATTERNS.md         # 20 incident patterns (L3-L4 knowledge base)
+├── ITSMLab_PATTERNS.md       # 20 incident patterns (L3-L4 knowledge base)
 ├── classifier.py             # L1-L2 hybrid classifier (vector + keyword fallback)
 ├── integration_module.py     # API webhook v2.0 (ChromaDB + DeepSeek)
 ├── orchestrator.py           # L3-L4 incident diagnostician
@@ -435,10 +435,10 @@ aegis-itsm-agent/
 │   ├── evaluate_real_data.py       # Cross-validation with real data
 │   └── import_real_data.py         # Import tickets from CSV to ChromaDB
 ├── docs/                     # Business documentation
-│   ├── AEGIS_Business_Document.docx
-│   ├── AEGIS_Executive_Summary.docx
-│   ├── AEGIS_Lean_Canvas_EN.docx
-│   └── AEGIS_Pitch_Deck.pptx
+│   ├── ITSMLab_Business_Document.docx
+│   ├── ITSMLab_Executive_Summary.docx
+│   ├── ITSMLab_Lean_Canvas_EN.docx
+│   └── ITSMLab_Pitch_Deck.pptx
 └── tickets_db/               # ChromaDB vector store (created at runtime)
 ```
 
@@ -463,8 +463,8 @@ aegis-itsm-agent/
 
 ## Pricing Tiers
 
-| | AEGIS Shield | AEGIS Guard | AEGIS Fortress |
-|-|-------------|-------------|----------------|
+| | ITSMLab Shield | ITSMLab Guard | ITSMLab Fortress |
+|-|----------------|---------------|------------------|
 | **Price** | $499/month | $1,499/month | Custom |
 | **Incidents** | Up to 50/month | Unlimited | Unlimited |
 | **Rate limit** | 10 req/hour | 50 req/hour | 200 req/hour |
@@ -473,4 +473,4 @@ aegis-itsm-agent/
 
 ---
 
-*Last updated: July 2026 — AEGIS v3.1 (On-Premise Ready)*
+*Last updated: July 2026 — ITSMLab v3.1 (On-Premise Ready)*

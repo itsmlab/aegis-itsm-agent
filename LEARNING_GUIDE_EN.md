@@ -1,6 +1,6 @@
-# 📘 AEGIS — Learning Guide
+# 📘 ITSMLab — Learning Guide
 
-> *Welcome to AEGIS. This guide is designed for anyone who wants to understand how the system works — whether you're a developer, DevOps, PM, or just curious. Everything is explained in plain language, with analogies and practical examples.*
+> *Welcome to ITSMLab. This guide is designed for anyone who wants to understand how the system works — whether you're a developer, DevOps, PM, or just curious. Everything is explained in plain language, with analogies and practical examples.*
 
 > *"The knowledge to solve any incident already exists. You just need to know where to find it."*
 
@@ -21,7 +21,7 @@
 
 Each term has a card with three parts:
 - **What is it?** — Simple explanation, like explaining to a teammate
-- **What is it used for in AEGIS?** — Its purpose in the project
+- **What is it used for in ITSMLab?** — Its purpose in the project
 - **🔍 You'll find it in:** — File(s) where it's used
 
 ---
@@ -30,7 +30,7 @@ Each term has a card with three parts:
 
 **What is it?** A modern Python framework for building REST APIs. It's fast (as the name suggests), easy to use, and generates automatic documentation.
 
-**What is it used for in AEGIS?** It's the heart of the backend. It defines all endpoints (`/v1/alert`, `/v1/health`, etc.), validates incoming and outgoing data, and generates interactive documentation at `/docs`.
+**What is it used for in ITSMLab?** It's the heart of the backend. It defines all endpoints (`/v1/alert`, `/v1/health`, etc.), validates incoming and outgoing data, and generates interactive documentation at `/docs`.
 
 **🔍 You'll find it in:** `app/main.py`, `app/routers/alerts.py`, `app/routers/admin.py`
 
@@ -40,7 +40,7 @@ Each term has a card with three parts:
 
 **What is it?** The "engine" that runs FastAPI. It's an ASGI server (the modern version of WSGI) that allows Python to handle many simultaneous connections.
 
-**What is it used for in AEGIS?** When you run `python app/main.py` or `uvicorn app.main:app --reload`, Uvicorn starts the server and begins listening for requests at `http://localhost:8000`.
+**What is it used for in ITSMLab?** When you run `python app/main.py` or `uvicorn app.main:app --reload`, Uvicorn starts the server and begins listening for requests at `http://localhost:8000`.
 
 **🔍 You'll find it in:** `app/main.py` (line 118: `uvicorn.run(...)`)
 
@@ -50,7 +50,7 @@ Each term has a card with three parts:
 
 **What is it?** Each "URL address" exposed by the API. Like a specific door in a building — each door leads to a different place.
 
-**What is it used for in AEGIS?** Defines the system's entry points:
+**What is it used for in ITSMLab?** Defines the system's entry points:
 - `POST /v1/alert` → Send an alert for diagnosis
 - `GET /v1/health` → Check if the system is alive
 - `GET /v1/stats` → View usage statistics
@@ -64,7 +64,7 @@ Each term has a card with three parts:
 
 **What is it?** A "quality control" for JSON data. It defines exactly which fields are expected, their types, and whether they're required or optional. If someone sends incorrect data, Pydantic rejects it before it reaches the program logic.
 
-**What is it used for in AEGIS?** Defines data models: `AlertRequest` (incoming), `DiagnosisResponse` (outgoing), `CreateTenantRequest` (for creating clients). It's also used for system configuration with `pydantic-settings`.
+**What is it used for in ITSMLab?** Defines data models: `AlertRequest` (incoming), `DiagnosisResponse` (outgoing), `CreateTenantRequest` (for creating clients). It's also used for system configuration with `pydantic-settings`.
 
 **🔍 You'll find it in:** `app/config.py`, `app/routers/alerts.py`, `app/routers/admin.py`
 
@@ -74,7 +74,7 @@ Each term has a card with three parts:
 
 **What is it?** A "translator" between Python and relational databases. It lets you work with databases using Python objects instead of writing SQL directly.
 
-**What is it used for in AEGIS?** Manages all persistent information: tenants (clients), API keys, and usage records. Supports PostgreSQL in production and SQLite in development.
+**What is it used for in ITSMLab?** Manages all persistent information: tenants (clients), API keys, and usage records. Supports PostgreSQL in production and SQLite in development.
 
 **🔍 You'll find it in:** `app/database.py`, `app/models.py`
 
@@ -84,7 +84,7 @@ Each term has a card with three parts:
 
 **What is it?** The technique of representing database tables as Python classes. Each table row is an object, each column is an attribute.
 
-**What is it used for in AEGIS?** The `Tenant`, `ApiKey`, and `UsageRecord` classes are ORM models. When you do `db.query(Tenant).first()`, SQLAlchemy translates that to SQL, queries the database, and returns a Python object.
+**What is it used for in ITSMLab?** The `Tenant`, `ApiKey`, and `UsageRecord` classes are ORM models. When you do `db.query(Tenant).first()`, SQLAlchemy translates that to SQL, queries the database, and returns a Python object.
 
 **🔍 You'll find it in:** `app/models.py`
 
@@ -94,7 +94,7 @@ Each term has a card with three parts:
 
 **What is it?** An open-source relational database, very powerful and reliable. It's the project's main database.
 
-**What is it used for in AEGIS?** Stores operational data: client information (tenants), their API keys, and usage records for billing.
+**What is it used for in ITSMLab?** Stores operational data: client information (tenants), their API keys, and usage records for billing.
 
 **🔍 You'll find it in:** `app/config.py` (line 42: `DATABASE_URL`), `docker-compose.yml`
 
@@ -104,7 +104,7 @@ Each term has a card with three parts:
 
 **What is it?** A database that doesn't need a server. Everything is stored in a single local file. Ideal for development and testing.
 
-**What is it used for in AEGIS?** It's the automatic "Plan B". If you don't have PostgreSQL installed, the system creates an `aegis_dev.db` file and works just the same. This lets you develop without needing to install PostgreSQL.
+**What is it used for in ITSMLab?** It's the automatic "Plan B". If you don't have PostgreSQL installed, the system creates an `aegis_dev.db` file and works just the same. This lets you develop without needing to install PostgreSQL.
 
 **🔍 You'll find it in:** `app/database.py` (function `_create_sqlite_engine()`)
 
@@ -114,7 +114,7 @@ Each term has a card with three parts:
 
 **What is it?** A "version control" system for your database. Just like Git tracks changes in your code, Alembic tracks changes in your database schema.
 
-**What is it used for in AEGIS?** When you add a new field to a model or create a new table, Alembic generates a "migration" that can be applied to any database (development, testing, production).
+**What is it used for in ITSMLab?** When you add a new field to a model or create a new table, Alembic generates a "migration" that can be applied to any database (development, testing, production).
 
 **🔍 You'll find it in:** `alembic/` (folder), `alembic.ini`
 
@@ -124,7 +124,7 @@ Each term has a card with three parts:
 
 **What is it?** A special database that understands the *meaning* of texts, not just exact words. It's a "vector database" (Vector DB).
 
-**What is it used for in AEGIS?** Stores the 77 historical tickets as vectors (embeddings). When a new ticket arrives, ChromaDB finds the most similar historical tickets by meaning, not by exact words.
+**What is it used for in ITSMLab?** Stores the 77 historical tickets as vectors (embeddings). When a new ticket arrives, ChromaDB finds the most similar historical tickets by meaning, not by exact words.
 
 **🔍 You'll find it in:** `classifier.py` (line 137: `chromadb.PersistentClient`), `tickets_db/` (data folder)
 
@@ -134,7 +134,7 @@ Each term has a card with three parts:
 
 **What is it?** Imagine converting a sentence into a numeric code that captures its "essence" or "meaning". So "I forgot my password" and "I can't log in" end up with similar codes, even though they use different words.
 
-**What is it used for in AEGIS?** The classifier converts each ticket into an embedding (a vector of 384 numbers) and looks for historical tickets with similar embeddings. It's like searching by "scent" instead of by labels.
+**What is it used for in ITSMLab?** The classifier converts each ticket into an embedding (a vector of 384 numbers) and looks for historical tickets with similar embeddings. It's like searching by "scent" instead of by labels.
 
 **🔍 You'll find it in:** `classifier.py` (line 133: `model.encode(description)`)
 
@@ -144,7 +144,7 @@ Each term has a card with three parts:
 
 **What is it?** A Python library that generates embeddings from text. It takes a sentence and returns a numeric vector.
 
-**What is it used for in AEGIS?** It's the tool the classifier uses to convert tickets into vectors. We use the `all-MiniLM-L6-v2` model because it's small, fast, and gives good results.
+**What is it used for in ITSMLab?** It's the tool the classifier uses to convert tickets into vectors. We use the `all-MiniLM-L6-v2` model because it's small, fast, and gives good results.
 
 **🔍 You'll find it in:** `classifier.py` (line 12: `from sentence_transformers import SentenceTransformer`)
 
@@ -154,7 +154,7 @@ Each term has a card with three parts:
 
 **What is it?** The specific embedding model we use. It's a small model (80 MB) that generates 384-dimensional vectors. "Mini" because it's lightweight, "LM" because it's a language model.
 
-**What is it used for in AEGIS?** It's the classifier's brain. It converts text into numeric vectors that ChromaDB can search.
+**What is it used for in ITSMLab?** It's the classifier's brain. It converts text into numeric vectors that ChromaDB can search.
 
 **🔍 You'll find it in:** `classifier.py` (line 34: `EMBEDDING_MODEL = "all-MiniLM-L6-v2"`)
 
@@ -164,7 +164,7 @@ Each term has a card with three parts:
 
 **What is it?** A database that searches by "semantic similarity" instead of exact matches. Like searching for "movies similar to this one" instead of "movies that have the word X in the title".
 
-**What is it used for in AEGIS?** ChromaDB is our Vector DB. When classifying a ticket, we search for the most similar historical tickets by meaning, not by keywords.
+**What is it used for in ITSMLab?** ChromaDB is our Vector DB. When classifying a ticket, we search for the most similar historical tickets by meaning, not by keywords.
 
 **🔍 You'll find it in:** `classifier.py` (lines 307-310: `collection.query(query_embeddings=[...])`)
 
@@ -174,8 +174,8 @@ Each term has a card with three parts:
 
 **What is it?** A technique that combines two steps: first it **retrieves** relevant information from a knowledge base, then it **generates** a response using an LLM with that information as context. Like a student who first checks their notes and then answers the exam.
 
-**What is it used for in AEGIS?** The L3/L4 orchestrator works with RAG:
-1. **Retrieves:** Loads `AEGIS_PATTERNS.md` (the 20 incident patterns)
+**What is it used for in ITSMLab?** The L3/L4 orchestrator works with RAG:
+1. **Retrieves:** Loads `ITSMLab_PATTERNS.md` (the 20 incident patterns)
 2. **Generates:** Sends the alert + patterns to the LLM (DeepSeek)
 3. **Responds:** The LLM identifies the most similar pattern and generates a personalized diagnosis
 
@@ -187,7 +187,7 @@ Each term has a card with three parts:
 
 **What is it?** An AI model trained on enormous amounts of text. It can understand language, answer questions, generate code, etc. Examples: GPT-4, DeepSeek, Llama.
 
-**What is it used for in AEGIS?** It's the "brain" behind L3/L4 diagnosis. It receives the alert and incident patterns, analyzes them, and generates a diagnosis and remediation script.
+**What is it used for in ITSMLab?** It's the "brain" behind L3/L4 diagnosis. It receives the alert and incident patterns, analyzes them, and generates a diagnosis and remediation script.
 
 **🔍 You'll find it in:** `app/llm/` (entire folder), `orchestrator.py`
 
@@ -197,7 +197,7 @@ Each term has a card with three parts:
 
 **What is it?** An LLM created by DeepSeek (a Chinese company). It's very cost-effective ($0.14 per million tokens) with good quality. It uses an OpenAI-compatible API.
 
-**What is it used for in AEGIS?** It's the default LLM for L3/L4 diagnosis. Its low cost allows running many diagnoses without spending a fortune.
+**What is it used for in ITSMLab?** It's the default LLM for L3/L4 diagnosis. Its low cost allows running many diagnoses without spending a fortune.
 
 **🔍 You'll find it in:** `app/llm/deepseek.py`, `app/config.py` (line 33: `DEEPSEEK_MODEL = "deepseek-chat"`)
 
@@ -207,7 +207,7 @@ Each term has a card with three parts:
 
 **What is it?** A standard format for communicating with LLMs. If an AI provider says "OpenAI-compatible API", it means you can use the same code you'd use with ChatGPT, just changing the URL and API key.
 
-**What is it used for in AEGIS?** DeepSeek, OpenAI, and Ollama (local) all use the same API format. This lets you switch providers by just changing a variable in `.env`.
+**What is it used for in ITSMLab?** DeepSeek, OpenAI, and Ollama (local) all use the same API format. This lets you switch providers by just changing a variable in `.env`.
 
 **🔍 You'll find it in:** `app/llm/openai_compat.py`, `app/llm/factory.py`
 
@@ -217,7 +217,7 @@ Each term has a card with three parts:
 
 **What is it?** An architecture where a single system serves multiple clients (tenants) while keeping their data isolated. Like an apartment building: same building, different apartments, each with its own key.
 
-**What is it used for in AEGIS?** Allows multiple clients to use the same AEGIS instance, each with their own API key, plan (Shield/Guard/Fortress), and usage limits.
+**What is it used for in ITSMLab?** Allows multiple clients to use the same ITSMLab instance, each with their own API key, plan (Shield/Guard/Fortress), and usage limits.
 
 **🔍 You'll find it in:** `app/models.py` (class `Tenant`), `app/dependencies.py` (function `get_current_tenant()`)
 
@@ -227,7 +227,7 @@ Each term has a card with three parts:
 
 **What is it?** Each client in a multi-tenant system. It's an organization using the service.
 
-**What is it used for in AEGIS?** Each tenant has:
+**What is it used for in ITSMLab?** Each tenant has:
 - A unique `id` (UUID)
 - An identifying `slug` (e.g., "acme-corp")
 - A `plan` (shield, guard, fortress)
@@ -242,7 +242,7 @@ Each term has a card with three parts:
 
 **What is it?** Support levels 1 and 2. These are routine, recurring tickets: access problems, how-to questions, licenses, simple configurations. They represent 60-70% of support volume.
 
-**What is it used for in AEGIS?** The hybrid classifier (ChromaDB + keywords) is designed to automate these tickets. Examples:
+**What is it used for in ITSMLab?** The hybrid classifier (ChromaDB + keywords) is designed to automate these tickets. Examples:
 - "I can't log in" → ACCESS
 - "How do I set up my email signature?" → HOWTO
 - "My Office license expired" → LICENSE
@@ -255,9 +255,9 @@ Each term has a card with three parts:
 
 **What is it?** Support levels 3 and 4. These are critical incidents: server outages, database failures, network problems. They require deep diagnosis and technical expertise.
 
-**What is it used for in AEGIS?** The orchestrator with RAG + LLM is designed to diagnose these incidents. Examples:
-- "Database server unresponsive, timeout on all connections" → AEGIS-005
-- "p99 latency went from 50ms to 30s after deploy" → AEGIS-001
+**What is it used for in ITSMLab?** The orchestrator with RAG + LLM is designed to diagnose these incidents. Examples:
+- "Database server unresponsive, timeout on all connections" → ITSMLab-005
+- "p99 latency went from 50ms to 30s after deploy" → ITSMLab-001
 
 **🔍 You'll find it in:** `orchestrator.py`, `app/services/orchestrator_service.py`
 
@@ -267,7 +267,7 @@ Each term has a card with three parts:
 
 **What is it?** A classifier that uses two methods instead of just one. Like having a Plan B in case Plan A fails.
 
-**What is it used for in AEGIS?** The classifier first tries vector search (semantic). If confidence is low (< 45%), it uses keywords as a fallback. This ensures we always have an answer, even for tickets with unusual vocabulary.
+**What is it used for in ITSMLab?** The classifier first tries vector search (semantic). If confidence is low (< 45%), it uses keywords as a fallback. This ensures we always have an answer, even for tickets with unusual vocabulary.
 
 **🔍 You'll find it in:** `classifier.py` (function `classify_ticket()`, lines 295-394)
 
@@ -277,7 +277,7 @@ Each term has a card with three parts:
 
 **What is it?** The classifier's "Plan B". If the vector search doesn't find similar tickets with enough confidence, a keyword system determines the category.
 
-**What is it used for in AEGIS?** If someone writes a ticket with very specific words that don't appear in historical tickets, the vector system might not recognize it. Keywords act as a safety net.
+**What is it used for in ITSMLab?** If someone writes a ticket with very specific words that don't appear in historical tickets, the vector system might not recognize it. Keywords act as a safety net.
 
 **🔍 You'll find it in:** `classifier.py` (function `classify_by_keywords()`, lines 253-293)
 
@@ -287,7 +287,7 @@ Each term has a card with three parts:
 
 **What is it?** A minimum confidence limit. If the system isn't sure enough about its answer, it prefers to say "I don't know" rather than risk giving an incorrect answer.
 
-**What is it used for in AEGIS?** The threshold is 45% (0.45). If the classifier's confidence is lower, it returns UNKNOWN. This reduces false positives: it's better for a ticket to go to human review than to be misclassified.
+**What is it used for in ITSMLab?** The threshold is 45% (0.45). If the classifier's confidence is lower, it returns UNKNOWN. This reduces false positives: it's better for a ticket to go to human review than to be misclassified.
 
 **🔍 You'll find it in:** `classifier.py` (line 36: `CONFIDENCE_THRESHOLD = 0.45`)
 
@@ -297,9 +297,9 @@ Each term has a card with three parts:
 
 **What is it?** A detailed analysis after a major incident. It documents what happened, why it happened, how it was detected, how it was resolved, and what will be done to prevent it from happening again.
 
-**What is it used for in AEGIS?** The 20 patterns in `AEGIS_PATTERNS.md` are based on real postmortems from companies like AWS, Cloudflare, Google, GitHub, Netflix, and Azure. Each pattern captures the lessons learned from a real incident.
+**What is it used for in ITSMLab?** The 20 patterns in `ITSMLab_PATTERNS.md` are based on real postmortems from companies like AWS, Cloudflare, Google, GitHub, Netflix, and Azure. Each pattern captures the lessons learned from a real incident.
 
-**🔍 You'll find it in:** `AEGIS_PATTERNS.md` (each pattern has a "Source" section with the original postmortem)
+**🔍 You'll find it in:** `ITSMLab_PATTERNS.md` (each pattern has a "Source" section with the original postmortem)
 
 ---
 
@@ -307,9 +307,9 @@ Each term has a card with three parts:
 
 **What is it?** A library of documented incident patterns. Each pattern describes: symptoms, diagnosis, and solution.
 
-**What is it used for in AEGIS?** It's the `AEGIS_PATTERNS.md` file with 20 patterns. The orchestrator uses it as context for the LLM. When an alert arrives, the LLM compares the symptoms against each pattern and picks the closest match.
+**What is it used for in ITSMLab?** It's the `ITSMLab_PATTERNS.md` file with 20 patterns. The orchestrator uses it as context for the LLM. When an alert arrives, the LLM compares the symptoms against each pattern and picks the closest match.
 
-**🔍 You'll find it in:** `AEGIS_PATTERNS.md` (1142 lines, 20 patterns)
+**🔍 You'll find it in:** `ITSMLab_PATTERNS.md` (1142 lines, 20 patterns)
 
 ---
 
@@ -317,7 +317,7 @@ Each term has a card with three parts:
 
 **What is it?** A Slack connection mode that doesn't require exposing a public server. The bot connects to Slack through a "socket" (communication channel) initiated by the bot itself.
 
-**What is it used for in AEGIS?** The Slack Bot (`slack_bot.py`) uses Socket Mode. This means you can run it on your local machine or a private server, without needing to configure public URLs or HTTPS.
+**What is it used for in ITSMLab?** The Slack Bot (`slack_bot.py`) uses Socket Mode. This means you can run it on your local machine or a private server, without needing to configure public URLs or HTTPS.
 
 **🔍 You'll find it in:** `slack_bot.py` (line 29: `from slack_bolt.adapter.socket_mode import SocketModeHandler`)
 
@@ -327,7 +327,7 @@ Each term has a card with three parts:
 
 **What is it?** A "doorbell" that rings when an event occurs. System A sends an HTTP request to System B when something important happens.
 
-**What is it used for in AEGIS?** PagerDuty sends alerts to AEGIS via a webhook (`POST /pagerduty`). When an incident occurs in PagerDuty, it "rings the doorbell" of AEGIS with all the details.
+**What is it used for in ITSMLab?** PagerDuty sends alerts to ITSMLab via a webhook (`POST /pagerduty`). When an incident occurs in PagerDuty, it "rings the doorbell" of ITSMLab with all the details.
 
 **🔍 You'll find it in:** `integration_module.py` (line 450: `@app.post("/pagerduty")`)
 
@@ -337,7 +337,7 @@ Each term has a card with three parts:
 
 **What is it?** An "ID card" for accessing the API. It's a secret string that identifies who is making the request.
 
-**What is it used for in AEGIS?** Each tenant has one or more API keys. When someone makes a request to `/v1/alert`, they must include the `X-API-Key: aeg_live_...` header. The system looks up the key in the database, identifies the tenant, and checks their plan and quota.
+**What is it used for in ITSMLab?** Each tenant has one or more API keys. When someone makes a request to `/v1/alert`, they must include the `X-API-Key: aeg_live_...` header. The system looks up the key in the database, identifies the tenant, and checks their plan and quota.
 
 **🔍 You'll find it in:** `app/dependencies.py` (function `get_current_tenant()`)
 
@@ -347,7 +347,7 @@ Each term has a card with three parts:
 
 **What is it?** A platform for running applications in "containers". A container is like a lightweight virtual machine that includes everything needed for the application to run.
 
-**What is it used for in AEGIS?** The `docker-compose.yml` starts three containers: the AEGIS app, PostgreSQL, and ChromaDB. With a single command (`docker-compose up`), you have the entire system running.
+**What is it used for in ITSMLab?** The `docker-compose.yml` starts three containers: the ITSMLab app, PostgreSQL, and ChromaDB. With a single command (`docker-compose up`), you have the entire system running.
 
 **🔍 You'll find it in:** `Dockerfile`, `docker-compose.yml`
 
@@ -357,7 +357,7 @@ Each term has a card with three parts:
 
 **What is it?** An isolated, secure environment for running code without risk. Like a "playground" where scripts can run without affecting the real system.
 
-**What is it used for in AEGIS?** It's a planned feature (Phase 3 of the roadmap). The orchestrator generates remediation scripts, but before they run in production, they go through a sandbox where a human reviews and approves them.
+**What is it used for in ITSMLab?** It's a planned feature (Phase 3 of the roadmap). The orchestrator generates remediation scripts, but before they run in production, they go through a sandbox where a human reviews and approves them.
 
 **🔍 You'll find it in:** `ARCHITECTURE.md` (section "Script Executor (Phase 3)")
 
@@ -365,11 +365,11 @@ Each term has a card with three parts:
 
 ## 2. 🏗️ The Architecture (The Incident Hospital)
 
-Imagine AEGIS as a **hospital specialized in IT incidents**. Each area of the hospital has a specific function:
+Imagine ITSMLab as a **hospital specialized in IT incidents**. Each area of the hospital has a specific function:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                     🏥 AEGIS HOSPITAL                        │
+│                     🏥 ITSMLab HOSPITAL                        │
 │                                                              │
 │  🚪 RECEPTION                     📋 ADMINISTRATION         │
 │  (app/main.py + routers/)        (app/routers/admin.py)     │
@@ -384,7 +384,7 @@ Imagine AEGIS as a **hospital specialized in IT incidents**. Each area of the ho
 │                                      • Ollama (local)        │
 │                                                              │
 │  📋 RECORDS                        📚 MEDICAL LIBRARY       │
-│  (app/database.py + models.py)     (AEGIS_PATTERNS.md)      │
+│  (app/database.py + models.py)     (ITSMLab_PATTERNS.md)      │
 │  • Patient data (tenants)          • 20 documented cases     │
 │  • Visit history (usage)           • Symptoms + diagnosis    │
 │                                      • Remediation scripts   │
@@ -401,7 +401,7 @@ Imagine AEGIS as a **hospital specialized in IT incidents**. Each area of the ho
 
 ### 🚪 Reception — API Layer (`app/main.py` + `app/routers/`)
 
-**What does it do?** It's the front door. Everything entering or leaving AEGIS passes through here.
+**What does it do?** It's the front door. Everything entering or leaving ITSMLab passes through here.
 
 - Receives HTTP requests (alerts, health checks, administration)
 - Validates that data is correct (Pydantic)
@@ -471,7 +471,7 @@ All medications come in the same format (OpenAI-compatible), so switching them i
 
 ---
 
-### 📚 Medical Library — Knowledge Base (`AEGIS_PATTERNS.md`)
+### 📚 Medical Library — Knowledge Base (`ITSMLab_PATTERNS.md`)
 
 **What does it do?** Stores knowledge from past incidents. It contains 20 documented cases from real incidents at companies like AWS, Cloudflare, Google, GitHub, Netflix, and Azure.
 
@@ -481,7 +481,7 @@ Each case includes:
 - **Remediation Script** — How was it fixed?
 
 **Key file:**
-- `AEGIS_PATTERNS.md` — 1142 lines, 20 patterns
+- `ITSMLab_PATTERNS.md` — 1142 lines, 20 patterns
 
 **To explore further:** Open the file and read 2-3 patterns. You'll notice they all follow the same structure. That consistency is what allows the LLM to understand and use them.
 
@@ -492,7 +492,7 @@ Each case includes:
 **What does it do?** Centralizes all system configuration in one place. It's like the hospital's control panel.
 
 Here you define:
-- File paths (where `AEGIS_PATTERNS.md`, `tickets_dataset.csv` are)
+- File paths (where `ITSMLab_PATTERNS.md`, `tickets_dataset.csv` are)
 - Models (which embedding model, which LLM to use)
 - Connections (PostgreSQL URL, ChromaDB host)
 - Limits (how many incidents per month on Shield plan)
@@ -623,16 +623,16 @@ Result: **L3/L4** → Goes to the orchestrator.
 
 The orchestrator (`orchestrator_service.diagnose()`) does the following:
 
-1. **Loads the medical library:** Reads `AEGIS_PATTERNS.md` completely (1142 lines, 20 patterns).
+1. **Loads the medical library:** Reads `ITSMLab_PATTERNS.md` completely (1142 lines, 20 patterns).
 
 2. **Builds the prompt:** Prepares a message for the LLM with:
    - **System prompt:** "You are Aegis, an autonomous triage agent. Compare the alert symptoms against the patterns. Respond ONLY with JSON."
    - **User prompt:** The user's alert + all 20 patterns.
 
-3. **LLM analyzes:** DeepSeek receives the prompt, compares the alert symptoms ("500 errors", "connection pool exhausted", "replication lag 300s") against each pattern, and determines the closest match is **AEGIS-005 (Database Failover)**.
+3. **LLM analyzes:** DeepSeek receives the prompt, compares the alert symptoms ("500 errors", "connection pool exhausted", "replication lag 300s") against each pattern, and determines the closest match is **ITSMLab-005 (Database Failover)**.
 
 4. **Generates response:** DeepSeek returns a JSON with:
-   - `id`: "AEGIS-005"
+   - `id`: "ITSMLab-005"
    - `name`: "Database Failover"
    - `diagnosis`: Explanation adapted to the specific alert
    - `script`: Bash remediation script from the pattern
@@ -649,10 +649,10 @@ A `UsageRecord` is saved to the database.
   "source": "pagerduty",
   "severity": "critical",
   "level": "L3/L4",
-  "pattern_id": "AEGIS-005",
+  "pattern_id": "ITSMLab-005",
   "pattern_name": "Database Failover",
-  "diagnosis": "The primary database appears to have failed or become saturated, triggering an automatic failover. Connection pool exhaustion and replication lag of 300 seconds indicate the new primary is struggling to catch up. This matches the Database Failover pattern (AEGIS-005) from AWS RDS March 2023.",
-  "script": "#!/bin/bash\n# AEGIS-005: Remediation for database failover\n\n# 1. Verify failover status\naws rds describe-db-instances ...\n\n# 2. Reconnect application (restart connection pools)\nkubectl rollout restart deployment/api\n\n# 3. Verify replica lag after failover\naws rds describe-db-instances ...\n\n# 4. Warm up cache\npsql -h new-primary -d my-db -c \"SELECT pg_prewarm('large_table');\"\n\n# 5. Alert DBA team\necho \"Failover detected on database.\" | mail -s \"DB Failover Alert\" dba@company.com",
+  "diagnosis": "The primary database appears to have failed or become saturated, triggering an automatic failover. Connection pool exhaustion and replication lag of 300 seconds indicate the new primary is struggling to catch up. This matches the Database Failover pattern (ITSMLab-005) from AWS RDS March 2023.",
+  "script": "#!/bin/bash\n# ITSMLab-005: Remediation for database failover\n\n# 1. Verify failover status\naws rds describe-db-instances ...\n\n# 2. Reconnect application (restart connection pools)\nkubectl rollout restart deployment/api\n\n# 3. Verify replica lag after failover\naws rds describe-db-instances ...\n\n# 4. Warm up cache\npsql -h new-primary -d my-db -c \"SELECT pg_prewarm('large_table');\"\n\n# 5. Alert DBA team\necho \"Failover detected on database.\" | mail -s \"DB Failover Alert\" dba@company.com",
   "confidence": null
 }
 ```
@@ -709,7 +709,7 @@ Takes a critical alert description, compares it against 20 real incident pattern
 - **As a standalone program:** `python orchestrator.py` opens an interactive loop where you write an alert and it diagnoses it.
 
 **What does it contain?**
-- **Knowledge base loader:** Reads `AEGIS_PATTERNS.md` completely
+- **Knowledge base loader:** Reads `ITSMLab_PATTERNS.md` completely
 - **DeepSeek client:** Connects to the DeepSeek API (OpenAI-compatible)
 - **Prompt system:** Clear instructions for the LLM to return valid JSON
 - **Response parser:** Extracts `id`, `name`, `diagnosis`, and `script` from JSON
@@ -726,14 +726,14 @@ Takes a critical alert description, compares it against 20 real incident pattern
 ```
 
 **What does it do?**
-Listens to messages in Slack and responds with AEGIS diagnoses. It can be @mentioned in channels, receive direct messages, or use the `/aegis` command.
+Listens to messages in Slack and responds with ITSMLab diagnoses. It can be @mentioned in channels, receive direct messages, or use the `/aegis` command.
 
 **How to use it?**
 ```bash
 python slack_bot.py
 ```
 Then in Slack:
-- `@AEGIS I can't log in` → Responds with diagnosis
+- `@ITSMLab I can't log in` → Responds with diagnosis
 - Direct message to the bot: "The server is returning error 500" → Diagnoses
 - `/aegis diagnose The database went down` → Diagnoses
 
@@ -747,7 +747,7 @@ Then in Slack:
 
 ---
 
-### 4.4 `AEGIS_PATTERNS.md` — The Pattern Library
+### 4.4 `ITSMLab_PATTERNS.md` — The Pattern Library
 
 ```
 🎭 Personality: The book of clinical cases
@@ -763,13 +763,13 @@ Then in Slack:
 **How is it used in the system?**
 The orchestrator reads it completely and passes it to the LLM as context. The LLM compares the current alert against each pattern and picks the closest match.
 
-**Example of a pattern (AEGIS-001):**
+**Example of a pattern (ITSMLab-001):**
 - **Source:** AWS Kinesis Event - November 2020
 - **Symptoms:** API 503, latency increases, throttling, Kinesis exceptions
 - **Diagnosis:** Cascade dependency saturation (domino effect from a non-resilient dependency)
 - **Script:** Bash that identifies the slow dependency, activates circuit breaker, scales, and restarts
 
-**🔍 File:** `AEGIS_PATTERNS.md` (1142 lines, 20 patterns)
+**🔍 File:** `ITSMLab_PATTERNS.md` (1142 lines, 20 patterns)
 
 ---
 
@@ -1007,10 +1007,10 @@ Available plans:
 
 ### 7. "How do I add a new incident pattern?"
 
-Edit `AEGIS_PATTERNS.md` and add a new block at the end following the existing format:
+Edit `ITSMLab_PATTERNS.md` and add a new block at the end following the existing format:
 
 ```markdown
-## Pattern AEGIS-021
+## Pattern ITSMLab-021
 **Name:** Your pattern name
 **Source:** Incident source
 
@@ -1075,7 +1075,7 @@ If you want to start from scratch (for example, with a new dataset), just delete
 1. Check [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contribution guidelines.
 2. The project follows a [Code of Conduct](./CODE_OF_CONDUCT.md).
 3. Contributions can include:
-   - **New patterns** in `AEGIS_PATTERNS.md`
+   - **New patterns** in `ITSMLab_PATTERNS.md`
    - **Classifier improvements** (more tickets, better accuracy)
    - **New integrations** (Jira, ServiceNow, Datadog)
    - **Bug fixes** and code improvements

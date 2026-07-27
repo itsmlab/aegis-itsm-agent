@@ -1,4 +1,4 @@
-"""Alembic environment configuration for AEGIS SaaS.
+"""Alembic environment configuration for ITSMLab SaaS.
 
 Uses the same database connection logic as the application:
 PostgreSQL first, with automatic fallback to SQLite.

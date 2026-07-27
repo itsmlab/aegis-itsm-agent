@@ -1,4 +1,4 @@
-# AEGIS — Guía de Instalación On-Premise
+# ITSMLab — Guía de Instalación On-Premise
 
 > **Versión:** 1.0.0  
 > **Última actualización:** Julio 2026  
@@ -65,7 +65,7 @@
                       ▼
 ┌─────────────────────────────────────────────────────────┐
 │  ┌──────────┐    ┌──────────┐    ┌──────────────────┐  │
-│  │  Caddy   │───▶│  AEGIS   │───▶│   PostgreSQL     │  │
+│  │  Caddy   │───▶│  ITSMLab │───▶│   PostgreSQL     │  │
 │  │ (proxy)  │    │   App    │    │   (datos)        │  │
 │  └──────────┘    └────┬─────┘    └──────────────────┘  │
 │                       │                                 │
@@ -88,7 +88,7 @@
 
 | Componente | Descripción | Puerto |
 |------------|-------------|--------|
-| **AEGIS App** | API REST principal (FastAPI) | `8000` |
+| **ITSMLab App** | API REST principal (FastAPI) | `8000` |
 | **PostgreSQL** | Base de datos relacional | `5432` |
 | **ChromaDB** | Vector store para RAG | `8001` |
 | **Ollama** (opcional) | Servicio de LLM local | `11434` |
@@ -158,7 +158,7 @@ LLM_PROVIDER=ollama
 # OLLAMA_MODEL=llama3
 
 # Base de datos (valores por defecto para single-node)
-DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/aegis
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/itsmlab
 
 # ChromaDB
 CHROMA_HOST=chromadb
@@ -244,7 +244,7 @@ ollama pull llama3
 ollama serve
 ```
 
-**Configuración en AEGIS:**
+**Configuración en ITSMLab:**
 
 ```bash
 # .env
@@ -269,12 +269,12 @@ OLLAMA_MODEL=llama3
 ### Opción B: API Externa (DeepSeek / OpenAI)
 
 **¿Qué es?**  
-El cliente usa su propia API key de un proveedor de LLM externo. AEGIS se conecta a la API del proveedor para hacer inferencia.
+El cliente usa su propia API key de un proveedor de LLM externo. ITSMLab se conecta a la API del proveedor para hacer inferencia.
 
 **Requisitos:**
 
 - API key válida del proveedor elegido
-- Conexión a internet desde el servidor de AEGIS
+- Conexión a internet desde el servidor de ITSMLab
 - Sin requisitos adicionales de hardware
 
 **Proveedores soportados:**
@@ -407,7 +407,7 @@ print('Database connected')
 
 ## 8. Mantenimiento
 
-### Actualizar AEGIS
+### Actualizar ITSMLab
 
 ```bash
 # Descargar última versión
@@ -437,7 +437,7 @@ docker compose logs -f ollama
 
 ```bash
 # Respaldar base de datos PostgreSQL
-docker compose exec postgres pg_dump -U postgres aegis > backup_$(date +%Y%m%d).sql
+docker compose exec postgres pg_dump -U postgres itsmlab > backup_$(date +%Y%m%d).sql
 
 # Respaldar ChromaDB
 tar -czf chromadb_backup_$(date +%Y%m%d).tar.gz chromadb_data/

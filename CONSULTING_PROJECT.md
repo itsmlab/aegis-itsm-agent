@@ -1,180 +1,138 @@
-# AEGIS Consulting — AI-Powered IT Incident Resolution
+# ITSMLab Consulting — AI-Powered IT Incident Resolution
 
-> **From 4+ hours of diagnosis to 15 seconds.**
-> Turn your team's knowledge into an AI agent that resolves incidents 24/7.
+> **Proposal for Enterprise Implementation**
+>
+> *Prepared by Leopoldo Lara — AI Solutions Engineer*
 
 ---
+
+## Executive Summary
+
+IT teams spend 60-70% of their time on repetitive L1/L2 tickets and 4+ hours diagnosing critical L3/L4 incidents. This proposal outlines a consulting engagement to implement ITSMLab — an autonomous AI agent that resolves incidents across all severity levels in seconds.
 
 ## The Problem
 
-Every time an incident occurs in your organization — from a routine L1 ticket to a critical production outage — the cycle repeats:
+| Challenge | Impact |
+|-----------|--------|
+| L1/L2 tickets consume 60-70% of team time | Despite having known resolutions |
+| L3/L4 diagnosis takes 4+ hours | Costing thousands per incident |
+| Knowledge exists in postmortems and runbooks | But is not accessible in real time |
+| Knowledge leaves when engineers leave | No institutional memory |
 
-1. **An engineer receives the alert** (Slack, PagerDuty, email)
-2. **Diagnoses manually** — checks logs, dashboards, postmortems
-3. **Searches for the solution** — in runbooks, documentation, or by asking colleagues
-4. **Executes remediation** — scripts, config changes, restarts
-5. **Documents** — if there's time
+## The Solution: ITSMLab
 
-**The result:** wasted hours, team fatigue, knowledge lost when engineers leave.
+ITSMLab is an autonomous AI agent that receives alerts, classifies them, diagnoses root causes, and delivers a production-ready remediation script — all in **under 15 seconds**.
 
-### The Hard Numbers
+### What ITSMLab Does
 
-| Metric | Reality |
-|---------|----------|
-| **60-70%** of support team time | Spent on L1/L2 tickets with known resolutions |
-| **4+ hours** per Tier-3/4 incident | On diagnosis and remediation |
-| **$5,600/minute** | Average downtime cost for SaaS companies (Gartner) |
-| **30%** of operational knowledge | Lost when a senior engineer leaves |
-
----
-
-## The Solution: AEGIS
-
-AEGIS is an autonomous AI agent that receives alerts, classifies them, diagnoses root causes, and delivers a production-ready remediation script — all in **under 15 seconds**.
-
-```
-Alert → L1/L2 Classification → L3/L4 Diagnosis → Remediation Script
-         (2 sec)                  (10 sec)           (3 sec)
-```
-
-### What AEGIS Does
-
-| Capability | Description |
-|-----------|-------------|
-| **Automatic L1/L2 Classification** | Classifies tickets into 8 categories with 75% accuracy (F1: 0.80) |
-| **L3/L4 Diagnosis** | Identifies patterns from real incidents (AWS, Azure, Cloudflare, GitHub, Netflix) |
-| **Remediation Scripts** | Generates production-ready commands |
-| **Universal Integration** | HTTP webhook — compatible with any system (Slack, PagerDuty, Jira, ServiceNow) |
-| **Slack Bot** | Diagnose incidents directly from Slack (DM, @mention, /command) |
-| **Multi-tenant** | Support for multiple teams or clients from a single instance |
-
-### Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| API | FastAPI + Python 3.11 |
-| Classifier | ChromaDB + SentenceTransformers (all-MiniLM-L6-v2) |
-| Diagnosis Engine | DeepSeek API + RAG over 20 real incident patterns |
-| Database | PostgreSQL (SQLite for development) |
-| Infrastructure | Docker + docker-compose |
-| LLM Abstraction | DeepSeek, OpenAI, Ollama (interchangeable) |
+| Level | Automation | What Happens |
+|-------|-----------|--------------|
+| **L1** (Simple) | 90% | Hybrid classification + auto-resolve |
+| **L2** (Recurring) | 70% | Pattern matching + suggested fix |
+| **L3** (Complex) | 50% | RAG diagnosis + remediation script |
+| **L4** (Expert) | 20% | Root cause + hotfix coordination |
 
 ---
 
-## Consulting Engagement
+## Engagement Scope
 
-### Phase 1: Assessment (1-2 weeks)
+### Phase 1: Assessment (Week 1)
 
-We analyze your current incident operations:
+- Analyze current incident management workflow
+- Review historical tickets (last 6 months)
+- Identify automation opportunities
+- Define success metrics
 
-- Review of current processes (ticketing, escalation, runbooks)
-- Analysis of historical tickets (volume, categories, resolution times)
-- Identification of repetitive, automatable patterns
-- Integration map (Slack, PagerDuty, Jira, etc.)
-- **Deliverable:** Assessment report with estimated ROI
+### Phase 2: Implementation (Weeks 2-3)
 
-### Phase 2: Implementation (2-4 weeks)
+We deploy ITSMLab in your environment:
 
-We deploy AEGIS in your environment:
+1. **Infrastructure setup** — Docker deployment (on-premise or cloud)
+2. **Classifier training** — Train on your historical tickets
+3. **Knowledge base** — Add your runbooks and postmortems
+4. **Integration** — Connect to Slack, PagerDuty, Jira, or custom webhooks
+5. **Testing** — Validate with real incidents
 
-- **Option A: On-Premise** — Installation in your infrastructure (Docker, Kubernetes)
-- **Option B: Cloud** — Deployment in your cloud (AWS, Azure, GCP)
-- **Option C: Hybrid** — Local classifier + cloud LLM
+### Phase 3: Customization (Week 4)
 
-Includes:
+We adapt ITSMLab to your specific needs:
 
-- Classifier configuration with your historical tickets
-- Knowledge base customization with your runbooks
-- Integration with your existing tools
-- Load testing and accuracy validation
+- Custom pattern recognition for your infrastructure
+- Custom remediation scripts
+- Custom integration endpoints
+- Custom dashboard and reporting
 
-### Phase 3: Customization (2-4 weeks)
+### Phase 4: Training & Handover (Week 5)
 
-We adapt AEGIS to your specific needs:
-
-- Classifier training with 100+ tickets from your organization
-- Addition of incident patterns specific to your domain
-- Approval workflows and auto-execution setup
-- Metrics dashboard and reporting
-
-### Phase 4: Training & Handover (1 week)
-
-We transfer knowledge to your team:
-
-- AEGIS operations and maintenance workshop
+- ITSMLab operations and maintenance workshop
 - Process and configuration documentation
-- Guide for adding new patterns and tickets
-- Post-implementation support (2 weeks)
+- Knowledge transfer sessions
+- Ongoing support plan
 
 ---
 
-## Case Study: Beta Client (SaaS, 200 employees)
+## ROI Analysis
 
-### Profile
+### Before ITSMLab
 
-B2B SaaS company with an 8-person support team handling ~300 tickets/month.
+| Metric | Current State |
+|--------|---------------|
+| L1/L2 resolution time | 30-60 minutes |
+| L3/L4 diagnosis time | 4-8 hours |
+| Tickets resolved without escalation | 30% |
+| Engineers on-call | 3 |
 
-### Before AEGIS
+### After ITSMLab
 
-| Metric | Value |
-|---------|-------|
-| L1/L2 tickets resolved per week | ~45 |
-| Average time per L1 ticket | 22 minutes |
-| Tickets escalated to L3/L4 | ~15/month |
-| Average L3/L4 diagnosis time | 3.5 hours |
-| Engineers on-call | 3 (weekly rotation) |
-
-### After AEGIS
-
-| Metric | Value | Improvement |
-|---------|-------|--------|
-| L1/L2 tickets resolved per week | ~65 | +44% |
-| Average time per L1 ticket | 4 minutes | -82% |
-| Tickets escalated to L3/L4 | ~8/month | -47% |
+| Metric | Projected | Improvement |
+|--------|-----------|-------------|
+| L1/L2 resolution time | 15 seconds | -99% |
 | Average L3/L4 diagnosis time | 18 minutes | -91% |
-| Engineers on-call | 1 (with AEGIS backup) | -67% |
+| Tickets resolved without escalation | 85% | +55% |
+| Engineers on-call | 1 (with ITSMLab backup) | -67% |
 
-### Estimated Annual ROI
+### Cost Savings Estimate
 
-| Item | Savings |
-|----------|--------|
-| Support hours recovered | ~1,200 hours/year |
-| Downtime reduction | ~40 hours/year |
-| Total estimated savings | **$120,000 - $200,000 USD/year** |
-
----
-
-## Engagement Models
-
-| Model | Description | Investment |
-|--------|-------------|-----------|
-| **Assessment + Recommendation** | Analysis of your operations and action plan | $3,500 USD |
-| **Full Implementation** | Assessment + deploy + customization + training | $12,000 - $18,000 USD |
-| **Ongoing Support** | Monthly maintenance, updates, support | $1,500/month |
-| **Training** | 2-day workshop for your team | $4,000 USD |
+| Category | Annual Savings |
+|----------|---------------|
+| L1/L2 engineer time recovered | $120,000 - $200,000 |
+| Reduced L3/L4 downtime | $500,000 - $2,000,000 |
+| Faster onboarding of new engineers | $50,000 - $100,000 |
+| **Total estimated savings** | **$670,000 - $2,300,000** |
 
 ---
 
-## Why Work With Me?
+## About the Consultant
 
-**Leopoldo Lara** — AI Solutions Engineer
+**Leopoldo Lara** — AI Solutions Engineer and M.Sc. in Artificial Intelligence (GPA 9.78/10)
 
-- **M.Sc. in Artificial Intelligence** (GPA 9.78/10)
-- **15+ years** in enterprise companies (Blue Yonder, Epicor Software)
-- **Tier-4 Escalation Authority** for global SaaS environments
+- **15+ years** of enterprise experience at Blue Yonder and Epicor Software
+- **Tier-4 Escalation Authority** for mission-critical SaaS environments globally
 - Hands-on experience with **hundreds of real incidents** across 23 enterprise Azure deployments
-- Creator of AEGIS — built from real incidents, not theory
+- Deep expertise in: Python, FastAPI, Docker, Kubernetes, PostgreSQL, ChromaDB, LLMs
+- Creator of ITSMLab — built from real incidents, not theory
 
-> *"I spent 15 years in the Tier-4 incident trenches. I built AEGIS because I know exactly what hurts — and what works."*
-
----
-
-## Contact
-
-- **Email:** laral5173@gmail.com
-- **GitHub:** [github.com/laral5173](https://github.com/laral5173)
-- **LinkedIn:** [linkedin.com/in/leopoldo-l-a0929aba](https://www.linkedin.com/in/leopoldo-l-a0929aba)
+> *"I spent 15 years in the Tier-4 incident trenches. I built ITSMLab because I know exactly what hurts — and what works."*
 
 ---
 
-*Ready to stop fighting fires and start preventing them?*
+## Pricing
+
+| Engagement | Duration | Investment |
+|------------|----------|------------|
+| Assessment Only | 1 week | $5,000 |
+| Full Implementation | 5 weeks | $25,000 |
+| Ongoing Support | Monthly | $2,500/month |
+
+---
+
+## Next Steps
+
+1. **Schedule a discovery call** — 30 minutes to discuss your specific needs
+2. **Share historical data** — 6 months of tickets for analysis
+3. **Define success criteria** — What does "done" look like for your team?
+4. **Start assessment** — Week 1 analysis and recommendations
+
+---
+
+*Contact: leopoldo.lara@itsmlab.com*
