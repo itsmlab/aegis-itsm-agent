@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Structured JSON logging configuration.
+ITSMLab — Structured JSON logging configuration.
 
 Provides:
   - JSON-formatted log output for production (machine-parseable)
@@ -267,4 +267,4 @@ class MetricsCollector:
 metrics_collector = MetricsCollector()
 
 # Initialize the root logger
-logger = get_logger("aegis")
+logger = get_logger("itsmlab")

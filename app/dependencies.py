@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — FastAPI dependencies for multi-tenant authentication and rate limiting.
+ITSMLab — FastAPI dependencies for multi-tenant authentication and rate limiting.
 
 Provides:
   - get_current_tenant: extracts API key from X-API-Key header, resolves tenant

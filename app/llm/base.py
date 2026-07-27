@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Abstract LLM Provider interface.
+ITSMLab — Abstract LLM Provider interface.
 All LLM backends (DeepSeek, OpenAI, Ollama, etc.) implement this.
 """
 

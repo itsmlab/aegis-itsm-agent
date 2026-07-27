@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 #
 """
-Aegis - Incident Diagnostic Orchestrator
+ITSMLab - Incident Diagnostic Orchestrator
 Uses Deepseek API to match alerts against AEGIS_PATTERNS.md
 """
 

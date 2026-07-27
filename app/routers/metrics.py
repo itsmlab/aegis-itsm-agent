@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Metrics endpoint.
+ITSMLab — Metrics endpoint.
 
 Provides:
   - GET /metrics: JSON snapshot of system and business metrics

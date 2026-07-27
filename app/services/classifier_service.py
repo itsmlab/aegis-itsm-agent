@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Multi-tenant classifier service.
+ITSMLab — Multi-tenant classifier service.
 Wraps the existing classifier.py logic with per-tenant ChromaDB collections.
 """
 

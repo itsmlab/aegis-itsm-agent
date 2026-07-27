@@ -1,5 +1,5 @@
 """
-AEGIS — Knowledge Base Initialization Script.
+ITSMLab — Knowledge Base Initialization Script.
 
 Loads AEGIS_PATTERNS.md, chunks it into individual patterns,
 embeds them with SentenceTransformers, and stores them in ChromaDB.

@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Pytest configuration and shared fixtures.
+ITSMLab — Pytest configuration and shared fixtures.
 
 Provides:
   - test_client: FastAPI TestClient with a temporary SQLite database

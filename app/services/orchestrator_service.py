@@ -1,10 +1,10 @@
 """
-AEGIS SaaS — Orchestrator service for L3/L4 incident diagnosis.
+ITSMLab — Orchestrator service for L3/L4 incident diagnosis.
 Uses the configured LLMProvider to diagnose critical incidents.
 
 Now uses RAG (Retrieval-Augmented Generation) to select only the most
 relevant patterns from the knowledge base, instead of sending the full
-AEGIS_PATTERNS.md to the LLM on every request.
+patterns file to the LLM on every request.
 """
 
 import time
@@ -115,7 +115,7 @@ class OrchestratorService:
                     "2. Run: ollama pull llama3\n"
                     "3. Run: ollama serve\n"
                     "4. Verify: curl http://localhost:11434/api/tags\n"
-                    "5. Restart the AEGIS service"
+                    "5. Restart the ITSMLab service"
                 ),
             }
         else:
@@ -132,7 +132,7 @@ class OrchestratorService:
             "script": (
                 f"1. Open the .env file in the project root\n"
                 f"2. Add {env_var}={example}\n"
-                f"3. Restart the AEGIS service\n"
+                f"3. Restart the ITSMLab service\n"
                 f"4. Verify with GET /v1/health"
             ),
         }
@@ -209,10 +209,10 @@ class OrchestratorService:
                 "path": str(settings.PATTERNS_FILE),
             })
             raise FileNotFoundError(
-                f"AEGIS_PATTERNS.md not found at {settings.PATTERNS_FILE}"
+                f"Patterns file not found at {settings.PATTERNS_FILE}"
             )
         kb = patterns_file.read_text(encoding="utf-8")
-        pattern_count = kb.count("## Pattern AEGIS-")
+        pattern_count = kb.count("## Pattern ITSMLab-")
         logger.info("Using full knowledge base (fallback)", extra={
             "pattern_count": pattern_count,
             "file_size_bytes": len(kb),
@@ -277,7 +277,7 @@ class OrchestratorService:
         """Count documented patterns in the knowledge base."""
         if self._patterns_kb is None:
             self._patterns_kb = self._load_full_kb()
-        return self._patterns_kb.count("## Pattern AEGIS-")
+        return self._patterns_kb.count("## Pattern ITSMLab-")
 
     def get_provider_name(self) -> str:
         """

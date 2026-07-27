@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Web dashboard for tenants.
+ITSMLab — Web dashboard for tenants.
 Serves an HTML page with usage stats, health check, recent activity,
 category distribution, and accuracy metrics (if available).
 
@@ -61,7 +61,7 @@ def dashboard(
     db: Session = Depends(get_db),
 ):
     """
-    Serve the AEGIS web dashboard for the authenticated tenant.
+    Serve the ITSMLab web dashboard for the authenticated tenant.
 
     Shows:
       - Usage statistics (total, monthly, tokens)

@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Centralized Configuration
+ITSMLab — Centralized Configuration
 Uses pydantic-settings to load from .env / environment variables.
 All paths, API keys, and service endpoints are defined here.
 """
@@ -11,7 +11,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # -- App metadata ------------------------------------------------
-    APP_NAME: str = "AEGIS Integration Module"
+    APP_NAME: str = "ITSMLab"
     APP_VERSION: str = "3.0.0"
     DEBUG: bool = False
 
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
 
     # -- PostgreSQL (multi-tenant operational data) ------------------
-    DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/aegis"
+    DATABASE_URL: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/itsmlab"
 
     # -- ChromaDB server ---------------------------------------------
     CHROMA_HOST: str = "localhost"

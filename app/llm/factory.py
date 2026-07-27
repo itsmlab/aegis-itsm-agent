@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — LLM Provider factory.
+ITSMLab — LLM Provider factory.
 Returns the appropriate provider based on settings.LLM_PROVIDER.
 """
 

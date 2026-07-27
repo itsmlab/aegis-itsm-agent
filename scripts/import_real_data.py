@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AEGIS — Import real customer tickets into ChromaDB for evaluation.
+ITSMLab — Import real customer tickets into ChromaDB for evaluation.
 
 Reads tickets from CSV or JSON, validates the format, shows statistics,
 and loads them into a ChromaDB collection for a specific tenant.

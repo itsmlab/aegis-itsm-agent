@@ -1,1 +1,1 @@
-# LLM Provider abstraction — supports DeepSeek, OpenAI, Ollama
+# ITSMLab — LLM Provider abstraction — supports DeepSeek, OpenAI, Ollama

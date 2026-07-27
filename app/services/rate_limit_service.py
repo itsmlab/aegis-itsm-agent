@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Rate limiting service per tenant.
+ITSMLab — Rate limiting service per tenant.
 
 Stores request counters per tenant and hour window in memory.
 Provides:

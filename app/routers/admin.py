@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Admin endpoints for tenant and API key management.
+ITSMLab — Admin endpoints for tenant and API key management.
 These are internal/admin endpoints (not exposed to end customers).
 """
 

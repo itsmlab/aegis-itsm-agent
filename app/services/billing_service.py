@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Billing and usage tracking service.
+ITSMLab — Billing and usage tracking service.
 Tracks incident count per tenant and enforces plan limits.
 """
 

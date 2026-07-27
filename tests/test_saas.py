@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Automated tests for the multi-tenant API.
+ITSMLab — Automated tests for the multi-tenant API.
 
 Run with:  pytest tests/ -v
 

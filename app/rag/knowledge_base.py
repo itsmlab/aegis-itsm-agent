@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — RAG Knowledge Base for pattern retrieval.
+ITSMLab — RAG Knowledge Base for pattern retrieval.
 
 Loads AEGIS_PATTERNS.md, splits it into chunks (one per pattern),
 embeds them with SentenceTransformers, and stores them in ChromaDB.

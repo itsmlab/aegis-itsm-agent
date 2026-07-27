@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 #
 """
-Aegis Ticket Classifier - L1/L2 Support Automation
+ITSMLab Ticket Classifier - L1/L2 Support Automation
 Learns from historical tickets using RAG to classify and suggest resolutions
 """
 

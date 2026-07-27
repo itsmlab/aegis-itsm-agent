@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Alert processing endpoints.
+ITSMLab — Alert processing endpoints.
 Replaces the legacy integration_module.py endpoints with multi-tenant versions.
 """
 

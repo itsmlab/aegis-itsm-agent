@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — OpenAI-compatible LLM Provider.
+ITSMLab — OpenAI-compatible LLM Provider.
 Works with OpenAI API and any API that uses the OpenAI-compatible interface.
 """
 

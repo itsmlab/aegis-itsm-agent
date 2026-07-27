@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — FastAPI application entry point.
+ITSMLab — FastAPI application entry point.
 Multi-tenant, with PostgreSQL, ChromaDB, and configurable LLM provider.
 """
 
@@ -18,7 +18,7 @@ from app.logging_config import get_logger, metrics_collector
 
 # ── Logging ───────────────────────────────────────────────────
 
-logger = get_logger("aegis")
+logger = get_logger("itsmlab")
 
 
 # ── Lifespan ──────────────────────────────────────────────────
@@ -27,7 +27,7 @@ logger = get_logger("aegis")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
-    logger.info("🛡️ AEGIS starting...", extra={
+    logger.info("🛡️ ITSMLab starting...", extra={
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "llm_provider": settings.LLM_PROVIDER,
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("🛡️ AEGIS shutting down...")
+    logger.info("🛡️ ITSMLab shutting down...")
 
 
 # ── App creation ──────────────────────────────────────────────

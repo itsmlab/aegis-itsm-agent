@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AEGIS — Evaluate classifier accuracy with real customer data.
+ITSMLab — Evaluate classifier accuracy with real customer data.
 
 Loads tickets from CSV/JSON, runs stratified 5-fold cross-validation,
 and reports detailed metrics: accuracy, precision, recall, F1-score,

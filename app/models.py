@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — SQLAlchemy ORM models for multi-tenant operational data.
+ITSMLab — SQLAlchemy ORM models for multi-tenant operational data.
 
 Models:
   - Tenant: each customer organization
@@ -40,7 +40,7 @@ class ApiKey(Base):
 
     id = Column(String(36), primary_key=True)  # UUID
     tenant_id = Column(String(36), ForeignKey("tenants.id"), nullable=False, index=True)
-    prefix = Column(String(10), nullable=False)  # e.g. "aeg_live_" — first chars of key
+    prefix = Column(String(10), nullable=False)  # e.g. "itsm_live_" — first chars of key
     key_hash = Column(String(128), nullable=False)  # SHA-256 hash of full key
     name = Column(String(255), nullable=False, default="default")
     role = Column(String(20), nullable=False, default="api")  # "admin" or "api"
@@ -57,7 +57,7 @@ class ApiKey(Base):
         The full key is shown only once to the user.
         """
         raw = secrets.token_hex(32)  # 64 hex chars
-        prefix = "aeg_live_"
+        prefix = "itsm_live_"
         full_key = f"{prefix}{raw}"
         key_hash = hashlib.sha256(full_key.encode()).hexdigest()
         return full_key, key_hash

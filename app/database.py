@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Database connection and session management.
+ITSMLab — Database connection and session management.
 Uses PostgreSQL (via psycopg2) by default, with automatic SQLite fallback
 for local development when PostgreSQL is not available.
 """
@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 from app.config import settings
 
-logger = logging.getLogger("aegis.database")
+logger = logging.getLogger("itsmlab.database")
 
 # ── Engine creation with automatic fallback ────────────────────
 
@@ -32,7 +32,7 @@ def _create_postgres_engine():
 
 def _create_sqlite_engine():
     """Create a SQLite engine for local development."""
-    sqlite_path = settings.PROJECT_ROOT / "aegis_dev.db"
+    sqlite_path = settings.PROJECT_ROOT / "itsmlab_dev.db"
     sqlite_url = f"sqlite:///{sqlite_path}"
     logger.info(f"📁 Using SQLite fallback: {sqlite_path}")
     return create_engine(

@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Anthropic (Claude) LLM Provider.
+ITSMLab — Anthropic (Claude) LLM Provider.
 Connects to Anthropic's API using the official Anthropic Python SDK.
 """
 

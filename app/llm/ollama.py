@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Ollama LLM Provider (dedicated implementation).
+ITSMLab — Ollama LLM Provider (dedicated implementation).
 Connects to a local Ollama instance via its OpenAI-compatible API.
 No monkey-patching needed — uses Ollama settings directly.
 """

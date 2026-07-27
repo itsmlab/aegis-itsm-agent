@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 #
 """
-AEGIS Integration Module v2.0
+ITSMLab Integration Module v2.0
 Universal webhook adapter — receives alerts and routes to L1/L2 classifier or L3/L4 orchestrator
 Now supports Slack Bot (via slack_bot.py) and PagerDuty (via /pagerduty webhook).
 """

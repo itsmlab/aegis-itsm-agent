@@ -2,18 +2,18 @@
 # Licensed under the Apache License, Version 2.0.
 #
 """
-AEGIS Slack Bot — receives alerts via Slack and returns AEGIS diagnosis.
+ITSMLab Slack Bot — receives alerts via Slack and returns ITSMLab diagnosis.
 
 Usage:
   1. Set SLACK_BOT_TOKEN and SLACK_APP_TOKEN in .env
   2. Run: python slack_bot.py
-  3. Message the bot or use /aegis diagnose <description>
+  3. Message the bot or use /itsmlab diagnose <description>
 
 Requires a Slack app with:
   - Socket Mode enabled
   - Events: message.im, app_mention
   - Bot Token Scopes: chat:write, commands, app_mentions:read
-  - Slash Command: /aegis
+  - Slash Command: /itsmlab
 """
 
 import os
@@ -31,7 +31,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 # Load environment
 load_dotenv()
 
-# ── Import AEGIS modules ───────────────────────────────────────
+# ── Import ITSMLab modules ─────────────────────────────────────
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
 import io
@@ -59,7 +59,7 @@ if not _use_saas_services:
 sys.stdout = _old_stdout
 
 # ── Initialize ChromaDB ────────────────────────────────────────
-print("🤖 AEGIS Slack Bot - Initializing...")
+print("🤖 ITSMLab Slack Bot - Initializing...")
 
 if _use_saas_services:
     # Use the new SaaS services
@@ -142,7 +142,7 @@ client = WebClient(token=SLACK_BOT_TOKEN)
 
 # ── Diagnosis function ─────────────────────────────────────────
 def diagnose_alert(alert_text: str) -> str:
-    """Run AEGIS diagnosis on an alert text and return a formatted response."""
+    """Run ITSMLab diagnosis on an alert text and return a formatted response."""
     level = route_severity(alert_text)
 
     if level == "L1/L2":
@@ -202,7 +202,7 @@ def handle_mention(event, say):
 
     if not text:
         say("Hi! Tell me about an incident and I'll diagnose it. "
-            "Example: `@AEGIS User cannot log in, gets 403 error`")
+            "Example: `@ITSMLab User cannot log in, gets 403 error`")
         return
 
     say(f"⏳ Diagnosing incident reported by <@{user}>...")
@@ -227,15 +227,15 @@ def handle_message(event, say):
 
 # ── Slash command ──────────────────────────────────────────────
 
-@app.command("/aegis")
+@app.command("/itsmlab")
 def handle_slash_command(ack, respond, command):
-    """Handle /aegis diagnose <description>"""
+    """Handle /itsmlab diagnose <description>"""
     ack()
     text = command.get("text", "").strip()
 
     if not text:
-        respond("Usage: `/aegis diagnose <incident description>`\n"
-                "Example: `/aegis diagnose User cannot log in, gets 403 error`")
+        respond("Usage: `/itsmlab diagnose <incident description>`\n"
+                "Example: `/itsmlab diagnose User cannot log in, gets 403 error`")
         return
 
     if text.lower().startswith("diagnose "):
@@ -248,7 +248,7 @@ def handle_slash_command(ack, respond, command):
 # ── Run ────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("🤖 AEGIS Slack Bot")
+    print("🤖 ITSMLab Slack Bot")
     print("=" * 50)
     if _use_saas_services:
         print(f"ChromaDB classifier: {stats['total_tickets']} tickets in {len(stats['categories'])} categories")

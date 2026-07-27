@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — DeepSeek LLM Provider implementation.
+ITSMLab — DeepSeek LLM Provider implementation.
 Uses the OpenAI-compatible DeepSeek API.
 """
 

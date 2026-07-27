@@ -1,5 +1,5 @@
 """
-AEGIS SaaS — Load tests.
+ITSMLab — Load tests.
 
 Simulates 50 concurrent requests from different tenants to verify:
   - No crashes or 5xx errors
