@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# ── AEGIS — On-Premise Intelligent Installer ──────────────────
-# Automated installation script for deploying AEGIS in a client environment.
+# ── ITSMLab — On-Premise Intelligent Installer ────────────────
+# Automated installation script for deploying ITSMLab (ITSM-Agent) in a client environment.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/laral5173/aegis-itsm-agent/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | bash
 #   # or locally:
 #   chmod +x install.sh && ./install.sh
 #
@@ -17,7 +17,7 @@
 #   OPENAI_API_KEY   = your OpenAI API key
 #   ANTHROPIC_API_KEY = your Anthropic API key
 #   OLLAMA_MODEL     = model name for Ollama (default: llama3)
-#   AEGIS_DOMAIN     = domain for HTTPS (default: localhost)
+#   ITSMLAB_DOMAIN   = domain for HTTPS (default: localhost)
 #   LOG_LEVEL        = DEBUG | INFO | WARNING | ERROR (default: INFO)
 #   SKIP_PRECHECKS   = set to "true" to skip prerequisite checks
 #   SKIP_KB_INIT     = set to "true" to skip knowledge base initialization
@@ -39,6 +39,56 @@ log_ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()  { echo -e "\n${CYAN}${BOLD}─── $1 ───${NC}\n"; }
+
+# ── Trap handler: catch unexpected exits and print actionable message ──
+trap_handler() {
+    local exit_code=$?
+    # Only print if we exited abnormally (not 0) and we're not in a sub-shell
+    if [ "$exit_code" -ne 0 ] && [ "${BASH_SUBSHELL:-0}" -eq 0 ]; then
+        echo ""
+        log_error "Installation failed at step ${CURRENT_STEP:-"unknown"} (exit code: ${exit_code})."
+        echo ""
+        echo "  ${BOLD}Actionable recovery commands:${NC}"
+        case "${CURRENT_STEP:-}" in
+            "prerequisites")
+                echo "    Fix the issues above and re-run: ./install.sh"
+                ;;
+            "docker_start")
+                echo "    sudo systemctl start docker"
+                echo "    sudo systemctl is-active docker  # verify it's running"
+                echo "    Then re-run: ./install.sh"
+                ;;
+            "compose_pull")
+                echo "    export \$(grep -v '^#' .env | xargs)"
+                echo "    docker compose pull postgres chromadb app"
+                echo "    Then re-run: ./install.sh"
+                ;;
+            "compose_up")
+                echo "    export \$(grep -v '^#' .env | xargs)"
+                echo "    docker compose up --build -d"
+                echo "    Or re-run: ./install.sh"
+                ;;
+            "kb_init")
+                echo "    docker compose exec app python scripts/init_knowledge_base.py"
+                echo "    Or skip with: SKIP_KB_INIT=true ./install.sh"
+                ;;
+            *)
+                echo "    export \$(grep -v '^#' .env | xargs)"
+                echo "    docker compose up --build -d"
+                echo "    Or re-run: ./install.sh"
+                ;;
+        esac
+        echo ""
+        echo "  ${BOLD}View logs:${NC}"
+        echo "    docker compose logs app"
+        echo "    docker compose logs postgres"
+        echo ""
+    fi
+}
+trap trap_handler EXIT
+
+# ── Track current step for the trap handler ─────────────────
+CURRENT_STEP=""
 
 # ── Helper: check if a port is available ────────────────────
 check_port() {
@@ -67,18 +117,89 @@ generate_password() {
     fi
 }
 
+# ── Helper: safely run docker compose with env-file fallback ─
+# Tries --env-file first (v2 syntax), falls back to export method
+docker_compose_run() {
+    local compose_args=("$@")
+
+    # Attempt 1: use --env-file (native v2 syntax)
+    if [ -n "${ENV_FILE:-}" ]; then
+        if docker compose --env-file "$ENV_FILE" "${compose_args[@]}" 2>/dev/null; then
+            return 0
+        fi
+        log_warn "docker compose --env-file failed. Falling back to export method..."
+    fi
+
+    # Attempt 2: export env vars into shell, then run without --env-file
+    if [ -n "${ENV_FILE:-}" ] && [ -f "$ENV_FILE" ]; then
+        set +a  # automatically export all variables
+        . "$ENV_FILE"
+        set -a
+    fi
+    docker compose "${compose_args[@]}"
+}
+
+# ── Helper: calculate estimated download size for images ────
+calculate_estimated_download() {
+    local total_mb=0
+    # Base images
+    total_mb=$((total_mb + 200))   # postgres:16-alpine ~200MB
+    total_mb=$((total_mb + 800))   # chromadb/chroma:latest ~800MB
+    total_mb=$((total_mb + 300))   # app build context ~300MB
+
+    if [ "${LLM_PROVIDER:-ollama}" = "ollama" ]; then
+        total_mb=$((total_mb + 4500))  # ollama/ollama:latest + llama3 model ~4.5GB
+    fi
+
+    if [ -n "${ITSMLAB_DOMAIN:-}" ]; then
+        total_mb=$((total_mb + 50))  # caddy:2-alpine ~50MB
+    fi
+
+    echo "$total_mb"
+}
+
+# ════════════════════════════════════════════════════════════
+# PRE-FLIGHT: Previous installation detection
+# ════════════════════════════════════════════════════════════
+if [ -f .env ] || [ -f .env.aegis ]; then
+    # Check if docker compose already created resources (containers or volumes)
+    if command -v docker &> /dev/null && docker compose ps --format json 2>/dev/null | grep -q .; then
+        echo ""
+        echo "  ╔══════════════════════════════════════════════════════════════╗"
+        echo "  ║     ⚠️  PREVIOUS INSTALLATION DETECTED                      ║"
+        echo "  ║                                                              ║"
+        echo "  ║  It looks like ITSMLab was already installed or partially     ║"
+        echo "  ║  set up on this system.                                      ║"
+        echo "  ║                                                              ║"
+        echo "  ║  To continue where you left off, just run:                   ║"
+        echo "  ║                                                              ║"
+        echo "  ║    docker compose up -d                                      ║"
+        echo "  ║                                                              ║"
+        echo "  ║  To restart the full installer, clean up first:              ║"
+        echo "  ║    docker compose down --volumes                             ║"
+        echo "  ║    rm -f .env .env.aegis docker-compose.override.yml        ║"
+        echo "  ║    ./install.sh                                              ║"
+        echo "  ╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        # Don't exit — let the user decide to continue or not
+        log_info "Continuing with installer in 5 seconds (Ctrl+C to abort)..."
+        sleep 5
+    fi
+fi
+
 # ── Banner ──────────────────────────────────────────────────
 echo ""
 echo "  ╔═══════════════════════════════════════════╗"
-echo "  ║         AEGIS — On-Premise Installer      ║"
+echo "  ║      ITSMLab — On-Premise Installer       ║"
 echo "  ║   Autonomous Incident Triage Agent        ║"
-echo "  ║   v3.1.0 — Intelligent Installer          ║"
+echo "  ║   v3.2.0 — Intelligent Installer          ║"
 echo "  ╚═══════════════════════════════════════════╝"
 echo ""
 
 # ════════════════════════════════════════════════════════════
 # STEP 1: Prerequisite Verification
 # ════════════════════════════════════════════════════════════
+CURRENT_STEP="prerequisites"
 log_step "Step 1/6: Verifying prerequisites"
 
 FAILED_CHECKS=0
@@ -94,56 +215,107 @@ else
     if docker info &> /dev/null; then
         log_ok "Docker found: $(docker --version 2>/dev/null)"
     else
-        log_error "Docker is installed but the daemon is not running."
-        echo "  → Start Docker: sudo systemctl start docker (Linux)"
-        echo "    or open Docker Desktop (macOS/Windows)"
-        FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        log_warn "Docker is installed but the daemon is not running."
+        echo "  → Attempting to start Docker daemon..."
+        CURRENT_STEP="docker_start"
+        if sudo systemctl start docker 2>/dev/null; then
+            # Wait a moment for the daemon to initialize
+            sleep 2
+            if systemctl is-active docker &>/dev/null; then
+                log_ok "Docker daemon started successfully."
+            else
+                log_error "Docker daemon failed to start after 'systemctl start docker'."
+                echo "  → Check: sudo journalctl -u docker --no-pager | tail -20"
+                echo "  → Or start manually: sudo dockerd &"
+                FAILED_CHECKS=$((FAILED_CHECKS + 1))
+            fi
+        else
+            log_error "Could not start Docker daemon with 'sudo systemctl start docker'."
+            echo "  → Try: sudo systemctl start docker"
+            echo "  → Check: sudo journalctl -u docker --no-pager | tail -20"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        fi
+        CURRENT_STEP="prerequisites"
     fi
 fi
 
-# ── 1b. Docker Compose ──────────────────────────────────────
+# ── 1b. Docker Compose (modern check) ───────────────────────
 log_info "Checking Docker Compose..."
-if ! docker compose version &> /dev/null; then
-    log_error "Docker Compose is not installed."
-    echo "  → Install Docker Compose: https://docs.docker.com/compose/install/"
-    FAILED_CHECKS=$((FAILED_CHECKS + 1))
+COMPOSE_CMD=""
+# Priority 1: modern 'docker compose' (plugin, v20.10+)
+if docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose"
+    log_ok "Docker Compose (plugin) found: $(docker compose version 2>/dev/null)"
+# Priority 2: legacy standalone 'docker-compose' binary
+elif command -v docker-compose &> /dev/null && docker-compose --version &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+    log_warn "Using legacy 'docker-compose' binary. Consider installing the official Docker Compose plugin."
+    log_info "  → Install plugin: sudo apt-get install docker-compose-plugin"
 else
-    log_ok "Docker Compose found: $(docker compose version 2>/dev/null)"
+    log_error "Docker Compose is not installed."
+    echo "  → Install the official Docker Compose plugin:"
+    echo "    sudo apt-get update && sudo apt-get install -y docker-compose-plugin"
+    echo "  → Or install standalone: https://docs.docker.com/compose/install/"
+    FAILED_CHECKS=$((FAILED_CHECKS + 1))
 fi
 
-# ── 1c. RAM check ───────────────────────────────────────────
+# ── 1c. RAM check (fixed for Ubuntu 24.04) ──────────────────
 log_info "Checking available RAM..."
 if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        total_ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
-        total_ram_gb=$((total_ram_kb / 1024 / 1024))
+        # Read MemTotal from /proc/meminfo, extract the numeric value in kB
+        total_ram_kb=$(grep -E '^MemTotal:' /proc/meminfo | awk '{print $2}')
+        # Validate we got a numeric value
+        if ! [[ "$total_ram_kb" =~ ^[0-9]+$ ]]; then
+            log_warn "Could not parse MemTotal from /proc/meminfo (got: '${total_ram_kb}'). Skipping RAM check."
+            total_ram_gb=0
+        else
+            # Calculate GB using awk for floating-point precision, then round
+            total_ram_gb=$(awk "BEGIN {printf \"%d\", $total_ram_kb / 1024 / 1024}")
+        fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         total_ram_bytes=$(sysctl -n hw.memsize 2>/dev/null)
-        total_ram_gb=$((total_ram_bytes / 1024 / 1024 / 1024))
+        if [[ "$total_ram_bytes" =~ ^[0-9]+$ ]]; then
+            total_ram_gb=$((total_ram_bytes / 1024 / 1024 / 1024))
+        else
+            log_warn "Could not detect RAM on macOS. Skipping RAM check."
+            total_ram_gb=0
+        fi
     fi
 
-    if [ "$total_ram_gb" -lt 8 ]; then
-        log_warn "System has ${total_ram_gb}GB RAM. 8GB+ recommended for Ollama + AEGIS."
+    if [ "$total_ram_gb" -gt 0 ]; then
         if [ "$total_ram_gb" -lt 4 ]; then
-            log_error "System has only ${total_ram_gb}GB RAM. Minimum 4GB required."
+            log_error "System has only ${total_ram_gb}GB RAM. Minimum 4GB required for Ollama + ITSMLab."
             FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        elif [ "$total_ram_gb" -lt 8 ]; then
+            log_warn "System has ${total_ram_gb}GB RAM. 8GB+ recommended for Ollama + ITSMLab."
+            log_warn "Installation will proceed, but performance may be degraded."
+        else
+            log_ok "RAM: ${total_ram_gb}GB (sufficient)"
         fi
-    else
-        log_ok "RAM: ${total_ram_gb}GB (sufficient)"
     fi
 else
     log_warn "Cannot detect RAM on this OS. Skipping RAM check."
 fi
 
-# ── 1d. Disk space check ────────────────────────────────────
+# ── 1d. Disk space check (with estimated download size) ─────
 log_info "Checking available disk space..."
 if command -v df &> /dev/null; then
     available_kb=$(df -k . | tail -1 | awk '{print $4}')
     available_gb=$((available_kb / 1024 / 1024))
-    if [ "$available_gb" -lt 10 ]; then
-        log_warn "Only ${available_gb}GB available. 10GB+ recommended for Docker images + data."
+
+    # Calculate estimated download size
+    estimated_mb=$(calculate_estimated_download)
+    estimated_gb=$(( (estimated_mb / 1024) + 1 ))  # round up
+
+    # We need: estimated download + 2GB buffer for runtime data
+    required_gb=$((estimated_gb + 2))
+
+    if [ "$available_gb" -lt "$required_gb" ]; then
+        log_warn "Only ${available_gb}GB available. ${required_gb}GB+ recommended (${estimated_gb}GB for images + 2GB buffer)."
+        log_warn "The download may fail partway through due to insufficient disk space."
     else
-        log_ok "Disk space: ${available_gb}GB available (sufficient)"
+        log_ok "Disk space: ${available_gb}GB available (${required_gb}GB needed — sufficient)"
     fi
 else
     log_warn "Cannot detect disk space. Skipping disk check."
@@ -156,7 +328,7 @@ for port in "${PORTS_TO_CHECK[@]}"; do
     if check_port "$port"; then
         log_ok "Port $port is available"
     else
-        log_warn "Port $port is already in use. AEGIS may conflict with existing services."
+        log_warn "Port $port is already in use. ITSMLab may conflict with existing services."
     fi
 done
 
@@ -192,6 +364,7 @@ fi
 # ════════════════════════════════════════════════════════════
 # STEP 2: LLM Provider Configuration
 # ════════════════════════════════════════════════════════════
+CURRENT_STEP="llm_config"
 log_step "Step 2/6: Configuring LLM provider"
 
 LLM_PROVIDER="${LLM_PROVIDER:-ollama}"
@@ -244,6 +417,7 @@ esac
 # ════════════════════════════════════════════════════════════
 # STEP 3: Generate .env Configuration
 # ════════════════════════════════════════════════════════════
+CURRENT_STEP="env_config"
 log_step "Step 3/6: Generating .env configuration"
 
 # Generate random PostgreSQL password
@@ -258,7 +432,7 @@ else
 fi
 
 cat > "$ENV_FILE" <<EOF
-# ── AEGIS Configuration ──────────────────────────────────────
+# ── ITSMLab Configuration ────────────────────────────────────
 # Generated by install.sh on $(date)
 # LLM Provider: ${LLM_PROVIDER}
 
@@ -305,11 +479,12 @@ log_ok "Configuration written to ${ENV_FILE}"
 # ════════════════════════════════════════════════════════════
 # STEP 4: Update docker-compose.yml with generated password
 # ════════════════════════════════════════════════════════════
+CURRENT_STEP="docker_override"
 log_step "Step 4/6: Configuring Docker services"
 
 # Create a docker-compose override for the generated password
 cat > docker-compose.override.yml <<EOF
-# ── AEGIS Docker Override ────────────────────────────────────
+# ── ITSMLab Docker Override ──────────────────────────────────
 # Auto-generated by install.sh on $(date)
 # Overrides default PostgreSQL credentials with secure random values
 version: "3.9"
@@ -326,38 +501,41 @@ log_ok "Docker override created with secure credentials"
 # ════════════════════════════════════════════════════════════
 # STEP 5: Pull Docker Images
 # ════════════════════════════════════════════════════════════
+CURRENT_STEP="compose_pull"
 log_step "Step 5/6: Pulling Docker images"
 
 log_info "Pulling core images (postgres, chromadb, app)..."
-docker compose --env-file "$ENV_FILE" pull postgres chromadb app 2>&1 | tail -5
+docker_compose_run pull postgres chromadb app 2>&1 | tail -5
 log_ok "Core images pulled"
 
 if [ "$LLM_PROVIDER" = "ollama" ]; then
     log_info "Pulling Ollama image..."
-    docker compose --profile ollama --env-file "$ENV_FILE" pull ollama 2>&1 | tail -3
+    docker_compose_run --profile ollama pull ollama 2>&1 | tail -3
     log_ok "Ollama image pulled"
 fi
 
 # ════════════════════════════════════════════════════════════
-# STEP 6: Start AEGIS
+# STEP 6: Start ITSMLab
 # ════════════════════════════════════════════════════════════
-log_step "Step 6/6: Starting AEGIS"
+CURRENT_STEP="compose_up"
+log_step "Step 6/6: Starting ITSMLab"
 
-COMPOSE_FLAGS="--env-file ${ENV_FILE}"
+COMPOSE_FLAGS=""
 
 if [ "$LLM_PROVIDER" = "ollama" ]; then
     COMPOSE_FLAGS="${COMPOSE_FLAGS} --profile ollama"
 fi
 
-if [ -n "${AEGIS_DOMAIN:-}" ]; then
+if [ -n "${ITSMLAB_DOMAIN:-}" ]; then
     COMPOSE_FLAGS="${COMPOSE_FLAGS} --profile caddy"
-    export CADDY_DOMAIN="${AEGIS_DOMAIN}"
+    export CADDY_DOMAIN="${ITSMLAB_DOMAIN}"
 fi
 
 log_info "Starting containers (this may take a minute)..."
-docker compose ${COMPOSE_FLAGS} up --build -d 2>&1 | tail -5
+docker_compose_run ${COMPOSE_FLAGS} up --build -d 2>&1 | tail -5
 
 # ── Post-Installation Validation ────────────────────────────
+CURRENT_STEP="validation"
 log_step "Post-Installation: Validating services"
 
 # Wait for all services to be healthy (up to 120 seconds)
@@ -406,9 +584,10 @@ log_info "Service status:"
 docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || true
 
 # ── Initialize Knowledge Base (RAG) ─────────────────────────
+CURRENT_STEP="kb_init"
 if [ "${SKIP_KB_INIT:-}" != "true" ]; then
     log_info "Initializing knowledge base..."
-    if docker compose ${COMPOSE_FLAGS} exec -T app python scripts/init_knowledge_base.py 2>&1; then
+    if docker compose exec -T app python scripts/init_knowledge_base.py 2>&1; then
         log_ok "Knowledge base initialized"
     else
         log_warn "Knowledge base initialization failed (non-critical). You can run it later:"
@@ -430,11 +609,12 @@ fi
 # ════════════════════════════════════════════════════════════
 # SUMMARY
 # ════════════════════════════════════════════════════════════
+CURRENT_STEP=""
 log_step "Installation Complete"
 
 echo ""
 echo "  ╔═══════════════════════════════════════════╗"
-echo "  ║         AEGIS Installation Complete!      ║"
+echo "  ║      ITSMLab Installation Complete!       ║"
 echo "  ╚═══════════════════════════════════════════╝"
 echo ""
 echo "  ── Access URLs ──────────────────────────────"
@@ -443,8 +623,8 @@ echo "    Health:       http://localhost:8000/v1/health"
 echo "    Docs:         http://localhost:8000/docs"
 echo ""
 
-if [ -n "${AEGIS_DOMAIN:-}" ]; then
-    echo "    HTTPS:        https://${AEGIS_DOMAIN}"
+if [ -n "${ITSMLAB_DOMAIN:-}" ]; then
+    echo "    HTTPS:        https://${ITSMLAB_DOMAIN}"
     echo ""
 fi
 
