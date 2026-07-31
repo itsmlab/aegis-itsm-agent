@@ -118,16 +118,17 @@ generate_password() {
 }
 
 # ── Helper: safely run docker compose with env-file fallback ─
-# Tries --env-file first (v2 syntax), falls back to export method
+# Uses the detected COMPOSE_CMD (docker compose or docker-compose).
+# Tries --env-file first (v2 syntax), falls back to export method.
 docker_compose_run() {
     local compose_args=("$@")
 
     # Attempt 1: use --env-file (native v2 syntax)
     if [ -n "${ENV_FILE:-}" ]; then
-        if docker compose --env-file "$ENV_FILE" "${compose_args[@]}" 2>/dev/null; then
+        if $COMPOSE_CMD --env-file "$ENV_FILE" "${compose_args[@]}" 2>/dev/null; then
             return 0
         fi
-        log_warn "docker compose --env-file failed. Falling back to export method..."
+        log_warn "$COMPOSE_CMD --env-file failed. Falling back to export method..."
     fi
 
     # Attempt 2: export env vars into shell, then run without --env-file
@@ -136,7 +137,7 @@ docker_compose_run() {
         . "$ENV_FILE"
         set -a
     fi
-    docker compose "${compose_args[@]}"
+    $COMPOSE_CMD "${compose_args[@]}"
 }
 
 # ── Helper: calculate estimated download size for images ────
@@ -216,8 +217,12 @@ else
         log_ok "Docker found: $(docker --version 2>/dev/null)"
     else
         log_warn "Docker is installed but the daemon is not running."
-        echo "  → Attempting to start Docker daemon..."
+        echo "  → Checking Docker daemon status..."
         CURRENT_STEP="docker_start"
+        # Show the current status for diagnostics
+        sudo systemctl status docker --no-pager 2>&1 | head -10 || true
+        echo ""
+        echo "  → Attempting to start Docker daemon..."
         if sudo systemctl start docker 2>/dev/null; then
             # Wait a moment for the daemon to initialize
             sleep 2
@@ -236,6 +241,22 @@ else
             FAILED_CHECKS=$((FAILED_CHECKS + 1))
         fi
         CURRENT_STEP="prerequisites"
+    fi
+
+    # ── 1a-2. Docker group permission check ─────────────────
+    # If the user is not root and not in the docker group, docker commands
+    # will fail with "permission denied" when connecting to the daemon socket.
+    if [ "$(id -u)" -ne 0 ]; then
+        if ! id -nG | grep -qw docker; then
+            log_warn "Current user is not in the 'docker' group."
+            echo "  → Docker commands will fail with 'permission denied'."
+            echo "  → Fix: sudo usermod -aG docker \$USER"
+            echo "  → Then log out and back in (or run: newgrp docker)"
+            echo "  → Alternatively, run the installer with: sudo ./install.sh"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        else
+            log_ok "User is in the 'docker' group."
+        fi
     fi
 fi
 
@@ -261,17 +282,22 @@ fi
 
 # ── 1c. RAM check (fixed for Ubuntu 24.04) ──────────────────
 log_info "Checking available RAM..."
+total_ram_gb=0
 if [[ "$OSTYPE" == "linux-gnu"* || "$OSTYPE" == "darwin"* ]]; then
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Read MemTotal from /proc/meminfo, extract the numeric value in kB
-        total_ram_kb=$(grep -E '^MemTotal:' /proc/meminfo | awk '{print $2}')
-        # Validate we got a numeric value
-        if ! [[ "$total_ram_kb" =~ ^[0-9]+$ ]]; then
-            log_warn "Could not parse MemTotal from /proc/meminfo (got: '${total_ram_kb}'). Skipping RAM check."
-            total_ram_gb=0
-        else
+        # Method 1: Read MemTotal from /proc/meminfo (value in kB)
+        total_ram_kb=$(grep -E '^MemTotal:' /proc/meminfo 2>/dev/null | awk '{print $2}')
+        if [[ "$total_ram_kb" =~ ^[0-9]+$ ]]; then
             # Calculate GB using awk for floating-point precision, then round
             total_ram_gb=$(awk "BEGIN {printf \"%d\", $total_ram_kb / 1024 / 1024}")
+        else
+            # Method 2 (fallback): use 'free -h' which is more reliable on some distros
+            log_warn "Could not parse MemTotal from /proc/meminfo. Trying 'free -h'..."
+            total_ram_gb=$(free -h 2>/dev/null | awk '/^Mem:/ {print $2}' | sed 's/[^0-9.]//g' | awk '{printf "%d", $1}')
+            if ! [[ "$total_ram_gb" =~ ^[0-9]+$ ]] || [ "$total_ram_gb" -eq 0 ]; then
+                log_warn "Could not detect RAM via 'free -h' either. Skipping RAM check."
+                total_ram_gb=0
+            fi
         fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         total_ram_bytes=$(sysctl -n hw.memsize 2>/dev/null)
@@ -301,21 +327,35 @@ fi
 # ── 1d. Disk space check (with estimated download size) ─────
 log_info "Checking available disk space..."
 if command -v df &> /dev/null; then
-    available_kb=$(df -k . | tail -1 | awk '{print $4}')
-    available_gb=$((available_kb / 1024 / 1024))
-
-    # Calculate estimated download size
-    estimated_mb=$(calculate_estimated_download)
-    estimated_gb=$(( (estimated_mb / 1024) + 1 ))  # round up
-
-    # We need: estimated download + 2GB buffer for runtime data
-    required_gb=$((estimated_gb + 2))
-
-    if [ "$available_gb" -lt "$required_gb" ]; then
-        log_warn "Only ${available_gb}GB available. ${required_gb}GB+ recommended (${estimated_gb}GB for images + 2GB buffer)."
-        log_warn "The download may fail partway through due to insufficient disk space."
+    # Use 'df -h /' to get the real root partition space (more reliable than '.' which
+    # may point to a different mount point depending on the current directory).
+    available_kb=$(df -k / 2>/dev/null | tail -1 | awk '{print $4}')
+    if ! [[ "$available_kb" =~ ^[0-9]+$ ]]; then
+        log_warn "Could not parse disk space from 'df -k /'. Skipping disk check."
     else
-        log_ok "Disk space: ${available_gb}GB available (${required_gb}GB needed — sufficient)"
+        available_gb=$((available_kb / 1024 / 1024))
+
+        # Calculate estimated download size
+        estimated_mb=$(calculate_estimated_download)
+        estimated_gb=$(( (estimated_mb / 1024) + 1 ))  # round up
+
+        # We need: estimated download + 2GB buffer for runtime data
+        required_gb=$((estimated_gb + 2))
+
+        # Hard minimum: 5GB (Ollama + llama3 alone is ~4.5GB)
+        MIN_DISK_GB=5
+
+        if [ "$available_gb" -lt "$MIN_DISK_GB" ]; then
+            log_error "Only ${available_gb}GB available. Minimum ${MIN_DISK_GB}GB required."
+            echo "  → Free up disk space and re-run the installer."
+            echo "  → Check usage: df -h /"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        elif [ "$available_gb" -lt "$required_gb" ]; then
+            log_warn "Only ${available_gb}GB available. ${required_gb}GB+ recommended (${estimated_gb}GB for images + 2GB buffer)."
+            log_warn "The download may fail partway through due to insufficient disk space."
+        else
+            log_ok "Disk space: ${available_gb}GB available (${required_gb}GB needed — sufficient)"
+        fi
     fi
 else
     log_warn "Cannot detect disk space. Skipping disk check."

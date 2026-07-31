@@ -198,6 +198,115 @@ python cross_validation.py
 
 ---
 
+## Solución de Problemas (Troubleshooting)
+
+### 1. Docker no está corriendo
+
+**Síntoma:** El instalador muestra `Docker is installed but the daemon is not running`.
+
+**Solución:**
+```bash
+# Verificar el estado del daemon
+sudo systemctl status docker
+
+# Iniciar el daemon
+sudo systemctl start docker
+
+# Verificar que quedó activo
+sudo systemctl is-active docker
+```
+
+### 2. Permiso denegado al ejecutar Docker
+
+**Síntoma:** Error `permission denied while trying to connect to the Docker daemon socket`.
+
+**Solución:** El usuario actual no está en el grupo `docker`:
+```bash
+# Agregar el usuario al grupo docker
+sudo usermod -aG docker $USER
+
+# Cerrar sesión y volver a entrar (o ejecutar:)
+newgrp docker
+
+# Verificar
+docker info
+```
+
+### 3. RAM detectada como 0GB o 1GB (Ubuntu 24.04)
+
+**Síntoma:** El instalador reporta `System has only 0GB RAM` aunque la VM tiene más.
+
+**Solución:** El instalador ahora usa `grep MemTotal /proc/meminfo` con fallback a `free -h`. Para verificar manualmente:
+```bash
+grep MemTotal /proc/meminfo
+free -h
+```
+
+### 4. Espacio en disco insuficiente
+
+**Síntoma:** El instalador aborta con `Only XGB available. Minimum 5GB required`.
+
+**Solución:** Liberar espacio o ampliar el disco:
+```bash
+# Verificar espacio disponible
+df -h /
+
+# Limpiar imágenes Docker no usadas
+docker system prune -a
+```
+
+### 5. Error `unknown flag: --env-file` al ejecutar Docker Compose
+
+**Síntoma:** El instalador falla en el paso de pull/up con `unknown flag: --env-file`.
+
+**Solución:** El instalador ahora detecta automáticamente si usar `docker compose` o `docker-compose`, y usa el método de exportación de variables como fallback. Para ejecutar manualmente:
+```bash
+# Método 1: exportar variables y ejecutar
+export $(grep -v '^#' .env | xargs)
+docker compose up -d
+
+# Método 2: usar el binario legacy
+docker-compose --env-file .env up -d
+```
+
+### 6. `docker compose` vs `docker-compose`
+
+**Síntoma:** El instalador no encuentra el comando de Compose.
+
+**Solución:** El instalador ahora detecta automáticamente cuál está disponible:
+- **`docker compose`** (plugin, Docker v20.10+) — recomendado
+- **`docker-compose`** (binario legacy)
+
+Para instalar el plugin oficial:
+```bash
+sudo apt-get update
+sudo apt-get install -y docker-compose-plugin
+```
+
+### 7. Error de pip: `--no-cache-deps` no existe
+
+**Síntoma:** El build de Docker falla con `no such option: --no-cache-deps`.
+
+**Solución:** Corregido en el `Dockerfile` — ahora usa `--no-cache-dir` (la opción correcta de pip).
+
+### 8. Instalación previa detectada
+
+**Síntoma:** El instalador muestra `PREVIOUS INSTALLATION DETECTED`.
+
+**Solución:** Para continuar donde quedaste:
+```bash
+docker compose up -d
+```
+
+Para reiniciar desde cero:
+```bash
+docker compose down --volumes
+rm -f .env .env.aegis docker-compose.override.yml
+./install.sh
+```
+
+---
+
 ## Architecture
 
 | Layer | Component | Technology | Status |

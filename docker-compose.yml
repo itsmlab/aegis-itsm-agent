@@ -20,15 +20,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: aegis
+      POSTGRES_USER: "${POSTGRES_USER:-aegis}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-aegis}"
+      POSTGRES_DB: "${POSTGRES_DB:-aegis}"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aegis}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,13 +53,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: "postgresql+psycopg2://postgres:postgres@postgres:5432/aegis"
+      DATABASE_URL: "postgresql+psycopg2://${POSTGRES_USER:-aegis}:${POSTGRES_PASSWORD:-aegis}@postgres:5432/${POSTGRES_DB:-aegis}"
       CHROMA_HOST: "chromadb"
       CHROMA_PORT: 8000
       CHROMA_USE_SERVER: "true"
-      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY}"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-      LLM_PROVIDER: "${LLM_PROVIDER:-deepseek}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-ollama}"
       OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://ollama:11434}"
       OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3}"
       AUTH_REQUIRED: "${AUTH_REQUIRED:-false}"
