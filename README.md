@@ -100,7 +100,7 @@ Slack / PagerDuty / Jira / ServiceNow
 
 ```bash
 # One-command install — Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent-dev/main/install.sh | bash
 
 # One-command install — Windows (PowerShell)
 # Download install.ps1 and run:
@@ -119,8 +119,8 @@ The installer will:
 ### Option B: Manual Setup (for development)
 
 ```bash
-git clone https://github.com/itsmlab/itsm-agent.git
-cd itsm-agent
+git clone https://github.com/itsmlab/itsm-agent-dev.git
+cd itsm-agent-dev
 
 python -m venv venv
 venv\Scripts\activate        # Windows
@@ -623,9 +623,9 @@ This project follows a [Code of Conduct](./CODE_OF_CONDUCT.md) — be excellent 
 
 ## About
 
-Built by **Leopoldo Lara** — AI Solutions Engineer and M.Sc. in Artificial Intelligence (GPA 9.78/10) with 15+ years of enterprise experience at Blue Yonder and Epicor Software. Currently serving as Tier-4 Escalation Authority for mission-critical SaaS environments globally.
+Built by **Leopoldo Lara** — AI Solutions Engineer and M.Sc. in Artificial Intelligence (GPA 9.78/10) with 15+ years of enterprise IT experience.
 
-ITSMLab was born from firsthand exposure to hundreds of real incidents across 23 enterprise Azure deployments — and the conviction that the knowledge to resolve them should be available to every team, not just the ones with 10-year veterans on call at 3am.
+ITSMLab was born from a broader conviction, shaped over 15+ years in enterprise IT operations: the knowledge to resolve most incidents already exists in public postmortems, runbooks, and community know-how — it should be available to every team in real time, not just the ones with 10-year veterans on call at 3am. ITSMLab's knowledge base is built entirely from public, published incident postmortems (see Knowledge Base section), independent of any employer's internal data.
 
 - **GitHub**: [github.com/itsmlab](https://github.com/itsmlab)
 - **LinkedIn**: [linkedin.com/in/leopoldo-lara](https://linkedin.com/in/leopoldo-lara)
