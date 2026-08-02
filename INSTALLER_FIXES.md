@@ -1,53 +1,53 @@
-# 🔧 INSTALLER_FIXES.md — Correcciones del Instalador ITSMLab
+# 🔧 INSTALLER_FIXES.md — ITSMLab Installer Fixes
 
-> **Fecha:** 30 de julio de 2026
-> **Entorno de prueba:** Ubuntu 24.04 LTS, Docker 29.1.3, Docker Compose 1.29.2
-> **Proyecto:** ITSMLab (AEGIS) — Autonomous Incident Triage Agent
-
----
-
-## Resumen
-
-Durante la instalación de ITSMLab en una VM con Ubuntu 24.04, se identificaron **8 problemas críticos** que impedían una instalación exitosa. Este documento detalla cada problema, su causa raíz, y la solución implementada.
+> **Date:** July 30, 2026
+> **Test environment:** Ubuntu 24.04 LTS, Docker 29.1.3, Docker Compose 1.29.2
+> **Project:** ITSMLab (AEGIS) — Autonomous Incident Triage Agent
 
 ---
 
-## Problemas y Soluciones
+## Summary
 
-### 1. Detección de RAM incorrecta (0GB / 1GB)
+During the installation of ITSMLab on a VM with Ubuntu 24.04, **8 critical issues** were identified that prevented a successful installation. This document details each issue, its root cause, and the implemented solution.
 
-**Problema:** El script detectaba 0GB o 1GB de RAM en lugar de la RAM real de la VM.
+---
 
-**Causa raíz:** El parsing de `/proc/meminfo` fallaba en Ubuntu 24.04, devolviendo un valor no numérico que se interpretaba como 0.
+## Issues and Solutions
 
-**Solución implementada:**
-- Método principal: `grep -E '^MemTotal:' /proc/meminfo | awk '{print $2}'` con validación numérica.
-- Método de respaldo: `free -h` si el primer método falla.
-- Validación de que el valor sea numérico antes de usarlo.
+### 1. Incorrect RAM detection (0GB / 1GB)
 
-**Archivo:** `install.sh` (sección 1c)
+**Issue:** The script detected 0GB or 1GB of RAM instead of the VM's actual RAM.
+
+**Root cause:** The parsing of `/proc/meminfo` failed on Ubuntu 24.04, returning a non-numeric value that was interpreted as 0.
+
+**Implemented solution:**
+- Primary method: `grep -E '^MemTotal:' /proc/meminfo | awk '{print $2}'` with numeric validation.
+- Fallback method: `free -h` if the first method fails.
+- Validation that the value is numeric before using it.
+
+**File:** `install.sh` (section 1c)
 
 ```bash
-# Método 1: /proc/meminfo
+# Method 1: /proc/meminfo
 total_ram_kb=$(grep -E '^MemTotal:' /proc/meminfo 2>/dev/null | awk '{print $2}')
-# Método 2 (fallback): free -h
+# Method 2 (fallback): free -h
 total_ram_gb=$(free -h 2>/dev/null | awk '/^Mem:/ {print $2}' | sed 's/[^0-9.]//g' | awk '{printf "%d", $1}')
 ```
 
 ---
 
-### 2. Detección de espacio en disco incorrecta
+### 2. Incorrect disk space detection
 
-**Problema:** El script no detectaba correctamente el espacio disponible en disco.
+**Issue:** The script did not correctly detect the available disk space.
 
-**Causa raíz:** Se usaba `df -k .` que depende del directorio actual, el cual puede apuntar a un mount point diferente al de la partición raíz.
+**Root cause:** It used `df -k .` which depends on the current directory, which may point to a different mount point than the root partition.
 
-**Solución implementada:**
-- Cambiado a `df -k /` para obtener el espacio real de la partición raíz.
-- Validación numérica del resultado.
-- Cálculo del espacio requerido basado en el tamaño estimado de las imágenes.
+**Implemented solution:**
+- Changed to `df -k /` to get the actual space of the root partition.
+- Numeric validation of the result.
+- Calculation of required space based on the estimated size of the images.
 
-**Archivo:** `install.sh` (sección 1d)
+**File:** `install.sh` (section 1d)
 
 ```bash
 available_kb=$(df -k / 2>/dev/null | tail -1 | awk '{print $4}')
@@ -55,19 +55,19 @@ available_kb=$(df -k / 2>/dev/null | tail -1 | awk '{print $4}')
 
 ---
 
-### 3. Docker daemon no corriendo
+### 3. Docker daemon not running
 
-**Problema:** El script no verificaba si Docker estaba activo antes de continuar.
+**Issue:** The script did not verify whether Docker was active before continuing.
 
-**Causa raíz:** No se verificaba el estado del daemon de Docker, solo se intentaba iniciar sin confirmar.
+**Root cause:** The Docker daemon status was not checked; it only attempted to start without confirming.
 
-**Solución implementada:**
-- Agregado `sudo systemctl status docker` para diagnóstico.
-- Agregado `sudo systemctl start docker` para iniciar.
-- Verificación con `systemctl is-active docker` para confirmar que quedó activo.
-- Mensajes de error accionables con comandos de diagnóstico.
+**Implemented solution:**
+- Added `sudo systemctl status docker` for diagnostics.
+- Added `sudo systemctl start docker` to start it.
+- Verification with `systemctl is-active docker` to confirm it became active.
+- Actionable error messages with diagnostic commands.
 
-**Archivo:** `install.sh` (sección 1a)
+**File:** `install.sh` (section 1a)
 
 ```bash
 sudo systemctl status docker --no-pager 2>&1 | head -10 || true
@@ -77,23 +77,23 @@ systemctl is-active docker
 
 ---
 
-### 4. Flag `--env-file` no soportado
+### 4. Unsupported `--env-file` flag
 
-**Problema:** El instalador usaba `--env-file` con `docker run`, pero no es soportado en todas las versiones de Docker Compose.
+**Issue:** The installer used `--env-file` with `docker run`, but it is not supported in all versions of Docker Compose.
 
-**Causa raíz:** Docker Compose v1 (legacy) no soporta `--env-file` de la misma forma que v2.
+**Root cause:** Docker Compose v1 (legacy) does not support `--env-file` the same way as v2.
 
-**Solución implementada:**
-- Nueva función `docker_compose_run()` que intenta `--env-file` primero (v2) y cae al método de exportación si falla.
-- Método de exportación: `set -a; . "$ENV_FILE"; set +a` para exportar variables al shell.
-- Usa el comando detectado (`$COMPOSE_CMD`) en lugar de hardcodear `docker compose`.
+**Implemented solution:**
+- New `docker_compose_run()` function that tries `--env-file` first (v2) and falls back to the export method if it fails.
+- Export method: `set -a; . "$ENV_FILE"; set +a` to export variables to the shell.
+- Uses the detected command (`$COMPOSE_CMD`) instead of hardcoding `docker compose`.
 
-**Archivo:** `install.sh` (función `docker_compose_run`)
+**File:** `install.sh` (function `docker_compose_run`)
 
 ```bash
-# Método 1: --env-file (v2)
+# Method 1: --env-file (v2)
 $COMPOSE_CMD --env-file "$ENV_FILE" "${compose_args[@]}"
-# Método 2 (fallback): exportar variables
+# Method 2 (fallback): export variables
 set +a; . "$ENV_FILE"; set -a
 $COMPOSE_CMD "${compose_args[@]}"
 ```
@@ -102,18 +102,18 @@ $COMPOSE_CMD "${compose_args[@]}"
 
 ### 5. `docker compose` vs `docker-compose`
 
-**Problema:** El script no detectaba qué comando de Compose estaba disponible.
+**Issue:** The script did not detect which Compose command was available.
 
-**Causa raíz:** Docker v20.10+ usa `docker compose` (plugin), mientras que versiones anteriores usan `docker-compose` (binario legacy).
+**Root cause:** Docker v20.10+ uses `docker compose` (plugin), while older versions use `docker-compose` (legacy binary).
 
-**Solución implementada:**
-- Detección automática con prioridad:
-  1. `docker compose version` (plugin moderno)
-  2. `docker-compose --version` (binario legacy)
-- La variable `COMPOSE_CMD` se usa en todas las llamadas a Compose.
-- Instrucciones para instalar el plugin oficial si ninguno está disponible.
+**Implemented solution:**
+- Automatic detection with priority:
+  1. `docker compose version` (modern plugin)
+  2. `docker-compose --version` (legacy binary)
+- The `COMPOSE_CMD` variable is used in all Compose calls.
+- Instructions to install the official plugin if neither is available.
 
-**Archivo:** `install.sh` (sección 1b)
+**File:** `install.sh` (section 1b)
 
 ```bash
 if docker compose version &> /dev/null; then
@@ -125,38 +125,38 @@ fi
 
 ---
 
-### 6. Flag incorrecto en Dockerfile
+### 6. Incorrect flag in Dockerfile
 
-**Problema:** `--no-cache-deps` no existe en pip.
+**Issue:** `--no-cache-deps` does not exist in pip.
 
-**Causa raíz:** Error tipográfico — la opción correcta de pip es `--no-cache-dir`.
+**Root cause:** Typo — the correct pip option is `--no-cache-dir`.
 
-**Solución implementada:**
-- Cambiado `--no-cache-deps` a `--no-cache-dir` en el `Dockerfile`.
+**Implemented solution:**
+- Changed `--no-cache-deps` to `--no-cache-dir` in the `Dockerfile`.
 
-**Archivo:** `Dockerfile`
+**File:** `Dockerfile`
 
 ```dockerfile
-# Antes (incorrecto):
+# Before (incorrect):
 RUN pip install --user --no-cache-deps -r requirements.txt
-# Después (correcto):
+# After (correct):
 RUN pip install --user --no-cache-dir -r requirements.txt
 ```
 
 ---
 
-### 7. Permiso denegado (grupo docker)
+### 7. Permission denied (docker group)
 
-**Problema:** El usuario no estaba en el grupo `docker`, causando errores de permiso.
+**Issue:** The user was not in the `docker` group, causing permission errors.
 
-**Causa raíz:** Docker requiere que el usuario esté en el grupo `docker` para acceder al socket del daemon sin sudo.
+**Root cause:** Docker requires the user to be in the `docker` group to access the daemon socket without sudo.
 
-**Solución implementada:**
-- Verificación de que el usuario esté en el grupo `docker`.
-- Sugerencia de `sudo usermod -aG docker $USER`.
-- Alternativa de ejecutar con `sudo ./install.sh`.
+**Implemented solution:**
+- Verification that the user is in the `docker` group.
+- Suggestion of `sudo usermod -aG docker $USER`.
+- Alternative of running with `sudo ./install.sh`.
 
-**Archivo:** `install.sh` (sección 1a-2)
+**File:** `install.sh` (section 1a-2)
 
 ```bash
 if ! id -nG | grep -qw docker; then
@@ -167,19 +167,19 @@ fi
 
 ---
 
-### 8. Espacio en disco insuficiente
+### 8. Insufficient disk space
 
-**Problema:** No se verificaba el espacio mínimo antes de comenzar la instalación.
+**Issue:** The minimum space was not verified before starting the installation.
 
-**Causa raíz:** El script solo advertía si había <10GB, pero no abortaba si el espacio era críticamente bajo.
+**Root cause:** The script only warned if there was <10GB, but did not abort if the space was critically low.
 
-**Solución implementada:**
-- Mínimo absoluto: **5GB** (Ollama + llama3 solo requieren ~4.5GB).
-- Si el espacio es <5GB → **ERROR** y aborta.
-- Si el espacio es <requerido (estimado + 2GB buffer) → **ADVERTENCIA**.
-- Cálculo automático del tamaño estimado de descarga.
+**Implemented solution:**
+- Absolute minimum: **5GB** (Ollama + llama3 only require ~4.5GB).
+- If space is <5GB → **ERROR** and abort.
+- If space is <required (estimated + 2GB buffer) → **WARNING**.
+- Automatic calculation of the estimated download size.
 
-**Archivo:** `install.sh` (sección 1d)
+**File:** `install.sh` (section 1d)
 
 ```bash
 MIN_DISK_GB=5
@@ -191,49 +191,49 @@ fi
 
 ---
 
-## Archivos Modificados
+## Modified Files
 
-| Archivo | Cambio |
+| File | Change |
 |---------|--------|
-| `install.sh` | Detección de RAM, espacio, Docker, grupo docker, comandos Compose |
+| `install.sh` | RAM detection, disk space, Docker, docker group, Compose commands |
 | `Dockerfile` | `--no-cache-deps` → `--no-cache-dir` |
-| `docker-compose.yml` | Variables de entorno con defaults (`${VAR:-default}`) |
-| `README.md` | Sección "Solución de Problemas (Troubleshooting)" |
-| `INSTALLER_FIXES.md` | Este documento |
+| `docker-compose.yml` | Environment variables with defaults (`${VAR:-default}`) |
+| `README.md` | "Troubleshooting" section |
+| `INSTALLER_FIXES.md` | This document |
 
 ---
 
-## Verificación
+## Verification
 
-Para verificar que las correcciones funcionan:
+To verify that the fixes work:
 
 ```bash
-# 1. Verificar RAM
+# 1. Verify RAM
 grep MemTotal /proc/meminfo
 free -h
 
-# 2. Verificar espacio
+# 2. Verify disk space
 df -h /
 
-# 3. Verificar Docker
+# 3. Verify Docker
 sudo systemctl status docker
 docker info
 
-# 4. Verificar Compose
+# 4. Verify Compose
 docker compose version || docker-compose --version
 
-# 5. Verificar grupo docker
+# 5. Verify docker group
 id -nG | grep docker
 
-# 6. Ejecutar el instalador
+# 6. Run the installer
 ./install.sh
 ```
 
 ---
 
-## Notas Adicionales
+## Additional Notes
 
-- El instalador ahora usa `set -euo pipefail` para detenerse en errores críticos.
-- Se agregó un trap handler que imprime comandos de recuperación accionables.
-- Se agregó detección de instalación previa para permitir continuar con `docker compose up -d`.
-- El instalador detecta automáticamente si usar `docker compose` o `docker-compose`.
+- The installer now uses `set -euo pipefail` to stop on critical errors.
+- A trap handler was added that prints actionable recovery commands.
+- Previous installation detection was added to allow continuing with `docker compose up -d`.
+- The installer automatically detects whether to use `docker compose` or `docker-compose`.

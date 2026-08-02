@@ -198,107 +198,107 @@ python cross_validation.py
 
 ---
 
-## Solución de Problemas (Troubleshooting)
+## Troubleshooting
 
-### 1. Docker no está corriendo
+### 1. Docker is not running
 
-**Síntoma:** El instalador muestra `Docker is installed but the daemon is not running`.
+**Symptom:** The installer shows `Docker is installed but the daemon is not running`.
 
-**Solución:**
+**Solution:**
 ```bash
-# Verificar el estado del daemon
+# Check the daemon status
 sudo systemctl status docker
 
-# Iniciar el daemon
+# Start the daemon
 sudo systemctl start docker
 
-# Verificar que quedó activo
+# Verify it is active
 sudo systemctl is-active docker
 ```
 
-### 2. Permiso denegado al ejecutar Docker
+### 2. Permission denied when running Docker
 
-**Síntoma:** Error `permission denied while trying to connect to the Docker daemon socket`.
+**Symptom:** Error `permission denied while trying to connect to the Docker daemon socket`.
 
-**Solución:** El usuario actual no está en el grupo `docker`:
+**Solution:** The current user is not in the `docker` group:
 ```bash
-# Agregar el usuario al grupo docker
+# Add the user to the docker group
 sudo usermod -aG docker $USER
 
-# Cerrar sesión y volver a entrar (o ejecutar:)
+# Log out and back in (or run:)
 newgrp docker
 
-# Verificar
+# Verify
 docker info
 ```
 
-### 3. RAM detectada como 0GB o 1GB (Ubuntu 24.04)
+### 3. RAM detected as 0GB or 1GB (Ubuntu 24.04)
 
-**Síntoma:** El instalador reporta `System has only 0GB RAM` aunque la VM tiene más.
+**Symptom:** The installer reports `System has only 0GB RAM` even though the VM has more.
 
-**Solución:** El instalador ahora usa `grep MemTotal /proc/meminfo` con fallback a `free -h`. Para verificar manualmente:
+**Solution:** The installer now uses `grep MemTotal /proc/meminfo` with a fallback to `free -h`. To verify manually:
 ```bash
 grep MemTotal /proc/meminfo
 free -h
 ```
 
-### 4. Espacio en disco insuficiente
+### 4. Insufficient disk space
 
-**Síntoma:** El instalador aborta con `Only XGB available. Minimum 5GB required`.
+**Symptom:** The installer aborts with `Only XGB available. Minimum 5GB required`.
 
-**Solución:** Liberar espacio o ampliar el disco:
+**Solution:** Free up space or expand the disk:
 ```bash
-# Verificar espacio disponible
+# Check available space
 df -h /
 
-# Limpiar imágenes Docker no usadas
+# Clean up unused Docker images
 docker system prune -a
 ```
 
-### 5. Error `unknown flag: --env-file` al ejecutar Docker Compose
+### 5. Error `unknown flag: --env-file` when running Docker Compose
 
-**Síntoma:** El instalador falla en el paso de pull/up con `unknown flag: --env-file`.
+**Symptom:** The installer fails at the pull/up step with `unknown flag: --env-file`.
 
-**Solución:** El instalador ahora detecta automáticamente si usar `docker compose` o `docker-compose`, y usa el método de exportación de variables como fallback. Para ejecutar manualmente:
+**Solution:** The installer now automatically detects whether to use `docker compose` or `docker-compose`, and uses the variable export method as a fallback. To run manually:
 ```bash
-# Método 1: exportar variables y ejecutar
+# Method 1: export variables and run
 export $(grep -v '^#' .env | xargs)
 docker compose up -d
 
-# Método 2: usar el binario legacy
+# Method 2: use the legacy binary
 docker-compose --env-file .env up -d
 ```
 
 ### 6. `docker compose` vs `docker-compose`
 
-**Síntoma:** El instalador no encuentra el comando de Compose.
+**Symptom:** The installer cannot find the Compose command.
 
-**Solución:** El instalador ahora detecta automáticamente cuál está disponible:
-- **`docker compose`** (plugin, Docker v20.10+) — recomendado
-- **`docker-compose`** (binario legacy)
+**Solution:** The installer now automatically detects which one is available:
+- **`docker compose`** (plugin, Docker v20.10+) — recommended
+- **`docker-compose`** (legacy binary)
 
-Para instalar el plugin oficial:
+To install the official plugin:
 ```bash
 sudo apt-get update
 sudo apt-get install -y docker-compose-plugin
 ```
 
-### 7. Error de pip: `--no-cache-deps` no existe
+### 7. pip error: `--no-cache-deps` does not exist
 
-**Síntoma:** El build de Docker falla con `no such option: --no-cache-deps`.
+**Symptom:** The Docker build fails with `no such option: --no-cache-deps`.
 
-**Solución:** Corregido en el `Dockerfile` — ahora usa `--no-cache-dir` (la opción correcta de pip).
+**Solution:** Fixed in the `Dockerfile` — it now uses `--no-cache-dir` (the correct pip option).
 
-### 8. Instalación previa detectada
+### 8. Previous installation detected
 
-**Síntoma:** El instalador muestra `PREVIOUS INSTALLATION DETECTED`.
+**Symptom:** The installer shows `PREVIOUS INSTALLATION DETECTED`.
 
-**Solución:** Para continuar donde quedaste:
+**Solution:** To continue where you left off:
 ```bash
 docker compose up -d
 ```
 
-Para reiniciar desde cero:
+To restart from scratch:
 ```bash
 docker compose down --volumes
 rm -f .env .env.aegis docker-compose.override.yml

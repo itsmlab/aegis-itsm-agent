@@ -1,72 +1,72 @@
-# ITSMLab — Guía de Instalación On-Premise
+# ITSMLab — On-Premise Installation Guide
 
-> **Versión:** 1.0.0  
-> **Última actualización:** Julio 2026  
-> **Sistema operativo soportado:** Linux (recomendado), Windows, macOS
-
----
-
-## Tabla de Contenidos
-
-1. [Requisitos del Sistema](#1-requisitos-del-sistema)
-2. [Arquitectura](#2-arquitectura)
-3. [Instalación Rápida (1 comando)](#3-instalación-rápida-1-comando)
-4. [Instalación Manual Paso a Paso](#4-instalación-manual-paso-a-paso)
-5. [Configuración del Modelo de IA](#5-configuración-del-modelo-de-ia)
-   - [Opción A: Modelo Local con Ollama](#opción-a-modelo-local-con-ollama)
-   - [Opción B: API Externa (DeepSeek / OpenAI)](#opción-b-api-externa-deepseek--openai)
-6. [Verificación de la Instalación](#6-verificación-de-la-instalación)
-7. [Solución de Problemas](#7-solución-de-problemas)
-8. [Mantenimiento](#8-mantenimiento)
-9. [Checklist de Configuración](#9-checklist-de-configuración)
+> **Version:** 1.0.0  
+> **Last updated:** July 2026  
+> **Supported operating systems:** Linux (recommended), Windows, macOS
 
 ---
 
-## 1. Requisitos del Sistema
+## Table of Contents
 
-### Mínimos (modo API externa)
+1. [System Requirements](#1-system-requirements)
+2. [Architecture](#2-architecture)
+3. [Quick Installation (1 command)](#3-quick-installation-1-command)
+4. [Manual Step-by-Step Installation](#4-manual-step-by-step-installation)
+5. [AI Model Configuration](#5-ai-model-configuration)
+   - [Option A: Local Model with Ollama](#option-a-local-model-with-ollama)
+   - [Option B: External API (DeepSeek / OpenAI)](#option-b-external-api-deepseek--openai)
+6. [Installation Verification](#6-installation-verification)
+7. [Troubleshooting](#7-troubleshooting)
+8. [Maintenance](#8-maintenance)
+9. [Configuration Checklist](#9-configuration-checklist)
 
-| Recurso | Requisito |
+---
+
+## 1. System Requirements
+
+### Minimum (external API mode)
+
+| Resource | Requirement |
 |---------|-----------|
 | CPU | 2 cores |
 | RAM | 2 GB |
-| Disco | 10 GB libres |
+| Disk | 10 GB free |
 | Docker | 24.0+ |
 | Docker Compose | 2.20+ |
-| SO | Linux (kernel 5.x+), Windows 10/11, macOS 12+ |
+| OS | Linux (kernel 5.x+), Windows 10/11, macOS 12+ |
 
-### Recomendados (modo local con Ollama)
+### Recommended (local mode with Ollama)
 
-| Recurso | Requisito |
+| Resource | Requirement |
 |---------|-----------|
 | CPU | 4 cores |
-| RAM | 8 GB (16 GB para modelos >7B) |
-| Disco | 20 GB libres (para modelos) |
-| GPU | NVIDIA con 4GB+ VRAM (opcional, mejora velocidad) |
-| Docker | 24.0+ con NVIDIA Container Toolkit (si usa GPU) |
+| RAM | 8 GB (16 GB for models >7B) |
+| Disk | 20 GB free (for models) |
+| GPU | NVIDIA with 4GB+ VRAM (optional, improves speed) |
+| Docker | 24.0+ with NVIDIA Container Toolkit (if using GPU) |
 | Docker Compose | 2.20+ |
 
-### Software Requerido
+### Required Software
 
-- **Docker** y **Docker Compose** (incluido en Docker Desktop)
-  - [Instalar Docker](https://docs.docker.com/get-docker/)
-- **curl** (para verificar la instalación)
-- **Git** (opcional, para clonar el repositorio)
+- **Docker** and **Docker Compose** (included in Docker Desktop)
+  - [Install Docker](https://docs.docker.com/get-docker/)
+- **curl** (to verify the installation)
+- **Git** (optional, to clone the repository)
 
 ---
 
-## 2. Arquitectura
+## 2. Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Cliente (Browser/API)                  │
+│                    Client (Browser/API)                  │
 └─────────────────────┬───────────────────────────────────┘
-                      │ HTTPS (opcional con Caddy)
+                      │ HTTPS (optional with Caddy)
                       ▼
 ┌─────────────────────────────────────────────────────────┐
 │  ┌──────────┐    ┌──────────┐    ┌──────────────────┐  │
 │  │  Caddy   │───▶│  ITSMLab │───▶│   PostgreSQL     │  │
-│  │ (proxy)  │    │   App    │    │   (datos)        │  │
+│  │ (proxy)  │    │   App    │    │   (data)         │  │
 │  └──────────┘    └────┬─────┘    └──────────────────┘  │
 │                       │                                 │
 │              ┌────────┴────────┐                       │
@@ -84,31 +84,31 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Componentes
+### Components
 
-| Componente | Descripción | Puerto |
+| Component | Description | Port |
 |------------|-------------|--------|
-| **ITSMLab App** | API REST principal (FastAPI) | `8000` |
-| **PostgreSQL** | Base de datos relacional | `5432` |
-| **ChromaDB** | Vector store para RAG | `8001` |
-| **Ollama** (opcional) | Servicio de LLM local | `11434` |
-| **Caddy** (opcional) | Proxy reverso con HTTPS automático | `80`, `443` |
+| **ITSMLab App** | Main REST API (FastAPI) | `8000` |
+| **PostgreSQL** | Relational database | `5432` |
+| **ChromaDB** | Vector store for RAG | `8001` |
+| **Ollama** (optional) | Local LLM service | `11434` |
+| **Caddy** (optional) | Reverse proxy with automatic HTTPS | `80`, `443` |
 
 ---
 
-## 3. Instalación Rápida (1 comando)
+## 3. Quick Installation (1 command)
 
 ### Linux / macOS
 
 ```bash
-# Opción 1: Modelo local con Ollama (recomendado para pruebas)
+# Option 1: Local model with Ollama (recommended for testing)
 curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | bash
 
-# Opción 2: Con API de DeepSeek
+# Option 2: With DeepSeek API
 curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | \
   DEEPSEEK_API_KEY=sk-xxx LLM_PROVIDER=deepseek bash
 
-# Opción 3: Con API de OpenAI
+# Option 3: With OpenAI API
 curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh | \
   OPENAI_API_KEY=sk-xxx LLM_PROVIDER=openai bash
 ```
@@ -116,48 +116,48 @@ curl -fsSL https://raw.githubusercontent.com/itsmlab/itsm-agent/main/install.sh 
 ### Windows (PowerShell)
 
 ```powershell
-# Opción 1: Modelo local con Ollama
+# Option 1: Local model with Ollama
 .\install.ps1
 
-# Opción 2: Con API de DeepSeek
+# Option 2: With DeepSeek API
 $env:LLM_PROVIDER="deepseek"; $env:DEEPSEEK_API_KEY="sk-xxx"; .\install.ps1
 
-# Opción 3: Con API de OpenAI
+# Option 3: With OpenAI API
 $env:LLM_PROVIDER="openai"; $env:OPENAI_API_KEY="sk-xxx"; .\install.ps1
 ```
 
-> **Nota:** El instalador automático verifica prerequisitos, crea el archivo `.env`, descarga las imágenes Docker, inicia los contenedores e inicializa la base de conocimiento RAG.
+> **Note:** The automatic installer verifies prerequisites, creates the `.env` file, downloads the Docker images, starts the containers, and initializes the RAG knowledge base.
 
 ---
 
-## 4. Instalación Manual Paso a Paso
+## 4. Manual Step-by-Step Installation
 
-### Paso 1: Clonar el repositorio
+### Step 1: Clone the repository
 
 ```bash
 git clone https://github.com/itsmlab/itsm-agent.git
 cd itsm-agent
 ```
 
-### Paso 2: Configurar variables de entorno
+### Step 2: Configure environment variables
 
-Crea un archivo `.env` en la raíz del proyecto:
+Create a `.env` file in the project root:
 
 ```bash
-# Proveedor de LLM: ollama | deepseek | openai
+# LLM provider: ollama | deepseek | openai
 LLM_PROVIDER=ollama
 
-# Si usas DeepSeek:
-# DEEPSEEK_API_KEY=sk-tu-api-key
+# If using DeepSeek:
+# DEEPSEEK_API_KEY=sk-your-api-key
 
-# Si usas OpenAI:
-# OPENAI_API_KEY=sk-tu-api-key
+# If using OpenAI:
+# OPENAI_API_KEY=sk-your-api-key
 
-# Si usas Ollama (opcional):
+# If using Ollama (optional):
 # OLLAMA_BASE_URL=http://ollama:11434
 # OLLAMA_MODEL=llama3
 
-# Base de datos (valores por defecto para single-node)
+# Database (default values for single-node)
 DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/itsmlab
 
 # ChromaDB
@@ -165,36 +165,36 @@ CHROMA_HOST=chromadb
 CHROMA_PORT=8000
 CHROMA_USE_SERVER=true
 
-# Seguridad (false para pruebas iniciales)
+# Security (false for initial testing)
 AUTH_REQUIRED=false
 
 # Logging
 LOG_LEVEL=INFO
 ```
 
-### Paso 3: Iniciar los servicios
+### Step 3: Start the services
 
 ```bash
 # Core (app + postgres + chromadb)
 docker compose --env-file .env up --build -d
 
-# Con Ollama local
+# With local Ollama
 docker compose --profile ollama --env-file .env up --build -d
 
-# Con HTTPS (requiere dominio configurado)
+# With HTTPS (requires configured domain)
 docker compose --profile caddy --env-file .env up --build -d
 
-# Todo completo
+# Everything complete
 docker compose --profile ollama --profile caddy --env-file .env up --build -d
 ```
 
-### Paso 4: Inicializar la base de conocimiento
+### Step 4: Initialize the knowledge base
 
 ```bash
 docker compose exec app python scripts/init_knowledge_base.py
 ```
 
-### Paso 5: Verificar
+### Step 5: Verify
 
 ```bash
 curl http://localhost:8000/v1/health
@@ -202,30 +202,30 @@ curl http://localhost:8000/v1/health
 
 ---
 
-## 5. Configuración del Modelo de IA
+## 5. AI Model Configuration
 
-### Opción A: Modelo Local con Ollama
+### Option A: Local Model with Ollama
 
-**¿Qué es Ollama?**  
-Ollama es un motor de LLM local que permite correr modelos como Llama 3, Mistral, Phi-3, etc., directamente en la infraestructura del cliente. No requiere conexión a internet para inferencia.
+**What is Ollama?**  
+Ollama is a local LLM engine that allows running models like Llama 3, Mistral, Phi-3, etc., directly on the client's infrastructure. It does not require internet connection for inference.
 
-**Requisitos adicionales:**
+**Additional requirements:**
 
-- 8 GB de RAM mínimo (16 GB recomendado para modelos de 7B parámetros)
-- GPU NVIDIA con 4GB+ VRAM (opcional, pero muy recomendado)
-- 10 GB de espacio en disco para el modelo base
+- 8 GB RAM minimum (16 GB recommended for 7B parameter models)
+- NVIDIA GPU with 4GB+ VRAM (optional, but highly recommended)
+- 10 GB disk space for the base model
 
-**Modelos recomendados:**
+**Recommended models:**
 
-| Modelo | Tamaño | RAM mínima | Calidad | Uso recomendado |
+| Model | Size | Minimum RAM | Quality | Recommended use |
 |--------|--------|------------|---------|-----------------|
-| `llama3` (8B) | 4.7 GB | 8 GB | Alta | Producción |
-| `llama3:70b` | 40 GB | 48 GB | Muy alta | Producción (GPU necesaria) |
-| `mistral` (7B) | 4.1 GB | 8 GB | Alta | Producción |
-| `phi3:mini` (3.8B) | 2.3 GB | 4 GB | Media | Pruebas / recursos limitados |
-| `qwen2:0.5b` | 352 MB | 2 GB | Baja | Pruebas mínimas |
+| `llama3` (8B) | 4.7 GB | 8 GB | High | Production |
+| `llama3:70b` | 40 GB | 48 GB | Very high | Production (GPU required) |
+| `mistral` (7B) | 4.1 GB | 8 GB | High | Production |
+| `phi3:mini` (3.8B) | 2.3 GB | 4 GB | Medium | Testing / limited resources |
+| `qwen2:0.5b` | 352 MB | 2 GB | Low | Minimal testing |
 
-**Instalación de Ollama (si no se usa el contenedor Docker):**
+**Ollama installation (if not using the Docker container):**
 
 ```bash
 # Linux
@@ -235,82 +235,82 @@ curl -fsSL https://ollama.com/install.sh | sh
 brew install ollama
 
 # Windows
-# Descargar de https://ollama.com/download
+# Download from https://ollama.com/download
 
-# Descargar un modelo
+# Download a model
 ollama pull llama3
 
-# Iniciar servidor
+# Start server
 ollama serve
 ```
 
-**Configuración en ITSMLab:**
+**ITSMLab configuration:**
 
 ```bash
 # .env
 LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434   # o http://ollama:11434 si usas Docker
+OLLAMA_BASE_URL=http://localhost:11434   # or http://ollama:11434 if using Docker
 OLLAMA_MODEL=llama3
 ```
 
-**Ventajas:**
-- Sin dependencia de internet
-- Sin costos de API por uso
-- Datos 100% en infraestructura del cliente
-- Latencia predecible (sin red)
+**Advantages:**
+- No internet dependency
+- No API usage costs
+- Data 100% on client infrastructure
+- Predictable latency (no network)
 
-**Desventajas:**
-- Requiere hardware más potente
-- Calidad de respuesta menor que GPT-4/DeepSeek
-- Primera inferencia lenta (carga del modelo en memoria)
+**Disadvantages:**
+- Requires more powerful hardware
+- Lower response quality than GPT-4/DeepSeek
+- Slow first inference (model loading into memory)
 
 ---
 
-### Opción B: API Externa (DeepSeek / OpenAI)
+### Option B: External API (DeepSeek / OpenAI)
 
-**¿Qué es?**  
-El cliente usa su propia API key de un proveedor de LLM externo. ITSMLab se conecta a la API del proveedor para hacer inferencia.
+**What is it?**  
+The client uses their own API key from an external LLM provider. ITSMLab connects to the provider's API for inference.
 
-**Requisitos:**
+**Requirements:**
 
-- API key válida del proveedor elegido
-- Conexión a internet desde el servidor de ITSMLab
-- Sin requisitos adicionales de hardware
+- Valid API key from the chosen provider
+- Internet connection from the ITSMLab server
+- No additional hardware requirements
 
-**Proveedores soportados:**
+**Supported providers:**
 
-| Proveedor | Variable de entorno | Costo estimado |
+| Provider | Environment variable | Estimated cost |
 |-----------|-------------------|----------------|
-| DeepSeek | `DEEPSEEK_API_KEY` | ~$0.14/1M tokens (entrada) |
-| OpenAI (GPT-4o mini) | `OPENAI_API_KEY` | ~$0.15/1M tokens (entrada) |
-| OpenAI (GPT-4o) | `OPENAI_API_KEY` | ~$2.50/1M tokens (entrada) |
+| DeepSeek | `DEEPSEEK_API_KEY` | ~$0.14/1M tokens (input) |
+| OpenAI (GPT-4o mini) | `OPENAI_API_KEY` | ~$0.15/1M tokens (input) |
+| OpenAI (GPT-4o) | `OPENAI_API_KEY` | ~$2.50/1M tokens (input) |
 
-**Configuración:**
+**Configuration:**
 
 ```bash
-# Para DeepSeek
+# For DeepSeek
 LLM_PROVIDER=deepseek
-DEEPSEEK_API_KEY=sk-tu-api-key-aqui
+DEEPSEEK_API_KEY=sk-your-api-key-here
 
-# Para OpenAI
+# For OpenAI
 LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-tu-api-key-aqui
+OPENAI_API_KEY=sk-your-api-key-here
 ```
 
-**Ventajas:**
-- Sin requisitos de hardware especializado
-- Mejor calidad de respuesta (especialmente GPT-4o)
-- Sin consumo de recursos locales para inferencia
+**Advantages:**
+- No specialized hardware requirements
+- Better response quality (especially GPT-4o)
+- No local resource consumption for inference
 
-**Desventajas:**
-- Dependencia de conexión a internet
-- Costos por uso (pueden acumularse)
-- Datos enviados a servidores externos
-- Latencia de red variable
+**Disadvantages:**
+- Internet connection dependency
+- Usage costs (can accumulate)
+- Data sent to external servers
+- Variable network latency
 
 ---
 
-## 6. Verificación de la Instalación
+## 6. Installation Verification
 
 ### Health Check
 
@@ -318,7 +318,7 @@ OPENAI_API_KEY=sk-tu-api-key-aqui
 curl http://localhost:8000/v1/health
 ```
 
-Respuesta esperada:
+Expected response:
 ```json
 {
   "status": "healthy",
@@ -329,7 +329,7 @@ Respuesta esperada:
 }
 ```
 
-### Diagnóstico de prueba
+### Test diagnosis
 
 ```bash
 curl -X POST http://localhost:8000/v1/diagnose \
@@ -337,57 +337,57 @@ curl -X POST http://localhost:8000/v1/diagnose \
   -d '{"alert": "CPU usage at 95% on server web-01"}'
 ```
 
-### Documentación interactiva
+### Interactive documentation
 
-Abre en tu navegador: [http://localhost:8000/docs](http://localhost:8000/docs)
+Open in your browser: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 7. Solución de Problemas
+## 7. Troubleshooting
 
-### Problema: El contenedor de Ollama no inicia
+### Problem: The Ollama container does not start
 
 ```bash
-# Verificar logs
+# Check logs
 docker compose logs ollama
 
-# Verificar si hay GPU disponible
+# Check if GPU is available
 docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
 
-# Sin GPU, funciona en CPU (más lento)
-# Editar docker-compose.yml y quitar la sección 'deploy.resources'
+# Without GPU, it works on CPU (slower)
+# Edit docker-compose.yml and remove the 'deploy.resources' section
 ```
 
-### Problema: "LLM provider not configured"
+### Problem: "LLM provider not configured"
 
 ```bash
-# Verificar que el .env tiene las variables correctas
+# Verify that .env has the correct variables
 cat .env | grep -E "LLM_PROVIDER|API_KEY"
 
-# Si usas Ollama, asegúrate de que el servicio esté corriendo
+# If using Ollama, make sure the service is running
 curl http://localhost:11434/api/tags
 ```
 
-### Problema: Base de conocimiento no inicializada
+### Problem: Knowledge base not initialized
 
 ```bash
-# Inicializar manualmente
+# Initialize manually
 docker compose exec app python scripts/init_knowledge_base.py
 
-# Verificar estado
+# Check status
 docker compose exec app python -c "
 from app.rag.knowledge_base import get_knowledge_base_stats
 print(get_knowledge_base_stats())
 "
 ```
 
-### Problema: Error de conexión a PostgreSQL
+### Problem: PostgreSQL connection error
 
 ```bash
-# Verificar que PostgreSQL está listo
+# Verify that PostgreSQL is ready
 docker compose logs postgres
 
-# Verificar conectividad
+# Check connectivity
 docker compose exec app python -c "
 from app.database import engine
 engine.connect()
@@ -395,98 +395,98 @@ print('Database connected')
 "
 ```
 
-### Problema: Puerto 8000 ya en uso
+### Problem: Port 8000 already in use
 
 ```bash
-# Cambiar el puerto en docker-compose.yml
-# Cambiar "8000:8000" a "8080:8000"
-# Luego acceder en http://localhost:8080
+# Change the port in docker-compose.yml
+# Change "8000:8000" to "8080:8000"
+# Then access at http://localhost:8080
 ```
 
 ---
 
-## 8. Mantenimiento
+## 8. Maintenance
 
-### Actualizar ITSMLab
+### Update ITSMLab
 
 ```bash
-# Descargar última versión
+# Download latest version
 git pull
 
-# Reconstruir y reiniciar
+# Rebuild and restart
 docker compose up --build -d
 
-# Ejecutar migraciones de base de datos (si las hay)
+# Run database migrations (if any)
 docker compose exec app alembic upgrade head
 ```
 
-### Ver logs
+### View logs
 
 ```bash
-# Todos los servicios
+# All services
 docker compose logs -f
 
-# Solo la app
+# App only
 docker compose logs -f app
 
-# Solo Ollama
+# Ollama only
 docker compose logs -f ollama
 ```
 
-### Respaldos
+### Backups
 
 ```bash
-# Respaldar base de datos PostgreSQL
+# Backup PostgreSQL database
 docker compose exec postgres pg_dump -U postgres itsmlab > backup_$(date +%Y%m%d).sql
 
-# Respaldar ChromaDB
+# Backup ChromaDB
 tar -czf chromadb_backup_$(date +%Y%m%d).tar.gz chromadb_data/
 ```
 
-### Detener servicios
+### Stop services
 
 ```bash
-# Detener todo
+# Stop everything
 docker compose down
 
-# Detener y eliminar volúmenes (cuidado: borra datos)
+# Stop and remove volumes (caution: deletes data)
 docker compose down -v
 ```
 
 ---
 
-## 9. Checklist de Configuración
+## 9. Configuration Checklist
 
-### Pre-instalación
+### Pre-installation
 
-- [ ] Verificar que Docker 24.0+ está instalado
-- [ ] Verificar que Docker Compose 2.20+ está instalado
-- [ ] Verificar RAM disponible (mínimo 2 GB, recomendado 8 GB)
-- [ ] Verificar espacio en disco (mínimo 10 GB)
-- [ ] Verificar conectividad a internet (si usa API externa)
-- [ ] Verificar GPU disponible (opcional, para Ollama)
-- [ ] Decidir modo de LLM: local (Ollama) o API externa
-- [ ] Obtener API key (si aplica)
+- [ ] Verify that Docker 24.0+ is installed
+- [ ] Verify that Docker Compose 2.20+ is installed
+- [ ] Verify available RAM (minimum 2 GB, recommended 8 GB)
+- [ ] Verify disk space (minimum 10 GB)
+- [ ] Verify internet connectivity (if using external API)
+- [ ] Verify GPU availability (optional, for Ollama)
+- [ ] Decide LLM mode: local (Ollama) or external API
+- [ ] Obtain API key (if applicable)
 
-### Instalación
+### Installation
 
-- [ ] Clonar repositorio o descargar archivos
-- [ ] Crear archivo `.env` con configuración
-- [ ] Ejecutar `docker compose up -d`
-- [ ] Verificar que todos los contenedores están "running"
-- [ ] Ejecutar `init_knowledge_base.py`
-- [ ] Verificar health endpoint: `curl localhost:8000/v1/health`
-- [ ] Probar diagnóstico: `curl -X POST localhost:8000/v1/diagnose`
+- [ ] Clone repository or download files
+- [ ] Create `.env` file with configuration
+- [ ] Run `docker compose up -d`
+- [ ] Verify that all containers are "running"
+- [ ] Run `init_knowledge_base.py`
+- [ ] Verify health endpoint: `curl localhost:8000/v1/health`
+- [ ] Test diagnosis: `curl -X POST localhost:8000/v1/diagnose`
 
-### Post-instalación
+### Post-installation
 
-- [ ] Configurar HTTPS (Caddy o proxy externo)
-- [ ] Configurar autenticación (`AUTH_REQUIRED=true`)
-- [ ] Configurar respaldos automáticos
-- [ ] Configurar monitoreo (logs, métricas)
-- [ ] Probar con alertas reales
-- [ ] Documentar configuración específica del cliente
+- [ ] Configure HTTPS (Caddy or external proxy)
+- [ ] Configure authentication (`AUTH_REQUIRED=true`)
+- [ ] Configure automatic backups
+- [ ] Configure monitoring (logs, metrics)
+- [ ] Test with real alerts
+- [ ] Document client-specific configuration
 
 ---
 
-> **¿Problemas?** Abre un issue en [GitHub](https://github.com/itsmlab/itsm-agent/issues) o contacta al equipo de soporte.
+> **Problems?** Open an issue on [GitHub](https://github.com/itsmlab/itsm-agent/issues) or contact the support team.
